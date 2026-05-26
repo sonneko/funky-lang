@@ -21,15 +21,11 @@ pub fn type_literal_parser<'a>() -> Boxed<'a, 'a, &'a [Token], TypeLiteral, Pars
             .map(|(name, args)| TypeLiteral::Reference {
                 name,
                 args: args.unwrap_or_default(),
-            })
-            .boxed();
+            });
 
         let struct_body = just(Token::Dollar)
-            .ignore_then(ident)
-            .repeated()
-            .collect::<Vec<_>>()
+            .ignore_then(ident.repeated().collect::<Vec<_>>())
             .then_ignore(just(Token::FatArrow))
-            .or_not()
             .then(
                 ident
                     .then_ignore(just(Token::Eq))
@@ -40,18 +36,14 @@ pub fn type_literal_parser<'a>() -> Boxed<'a, 'a, &'a [Token], TypeLiteral, Pars
             )
             .map(|(generics, fields)| {
                 TypeLiteral::Struct(StructTypeBody {
-                    generics: generics.unwrap_or_default(),
+                    generics,
                     fields,
                 })
-            })
-            .boxed();
+            });
 
         let enum_body = just(Token::Dollar)
-            .ignore_then(ident)
-            .repeated()
-            .collect::<Vec<_>>()
+            .ignore_then(ident.repeated().collect::<Vec<_>>())
             .then_ignore(just(Token::FatArrow))
-            .or_not()
             .then(
                 ident
                     .then_ignore(just(Token::Eq))
@@ -62,38 +54,22 @@ pub fn type_literal_parser<'a>() -> Boxed<'a, 'a, &'a [Token], TypeLiteral, Pars
             )
             .map(|(generics, variants)| {
                 TypeLiteral::Enum(EnumTypeBody {
-                    generics: generics.unwrap_or_default(),
+                    generics,
                     variants,
                 })
-            })
-            .boxed();
+            });
 
-        let protocol_literal = just(Token::Caret)
-            .ignore_then(ident)
-            .separated_by(just(Token::Plus))
-            .at_least(1)
-            .collect::<Vec<_>>();
+        let base_type = choice((
+            struct_body,
+            enum_body,
+            reference,
+        )).boxed();
 
-        let constraint = just(Token::Dollar)
-            .ignore_then(ident)
-            .then_ignore(just(Token::Colon))
-            .then(protocol_literal.clone().map(ProtocolDefinitionBody::Literal))
-            .map(|(name, body)| ProtocolConstraint { name, body });
-
-        let constraints = constraint
-            .repeated()
-            .collect::<Vec<_>>()
-            .then_ignore(just(Token::FatArrow))
-            .boxed();
-
-        let base_type = choice((struct_body, enum_body, reference)).boxed();
-
-        let fn_type = constraints.or_not()
-            .then(base_type.clone())
+        base_type
+            .clone()
             .then(just(Token::RAngle).ignore_then(type_literal.clone()).repeated().collect::<Vec<_>>())
-            .map(|((constraints, first), rest)| {
-                let constraints = constraints.unwrap_or_default();
-                if rest.is_empty() && constraints.is_empty() {
+            .map(|(first, rest)| {
+                if rest.is_empty() {
                     first
                 } else {
                     let all = std::iter::once(first).chain(rest).collect::<Vec<_>>();
@@ -106,15 +82,10 @@ pub fn type_literal_parser<'a>() -> Boxed<'a, 'a, &'a [Token], TypeLiteral, Pars
                             return_ty: Box::new(current),
                         });
                     }
-                    if let TypeLiteral::Fn(ref mut f) = current {
-                        f.constraints = constraints;
-                    }
                     current
                 }
             })
-            .boxed();
-
-        fn_type.memoized()
+            .boxed()
     })
     .boxed()
 }
@@ -132,7 +103,7 @@ pub fn expression_parser<'a>(
             int.map(|i| PrimaryExpression::Literal(Literal::Int(i))),
             float.map(|f| PrimaryExpression::Literal(Literal::Float(f))),
             string.map(|s| PrimaryExpression::Literal(Literal::String(s))),
-        )).boxed();
+        ));
 
         let ident_based = ident.then(
             choice((
@@ -163,18 +134,17 @@ pub fn expression_parser<'a>(
                     Box::new(move |name| PrimaryExpression::PeriodAccess(vec![name])) as Box<dyn FnOnce(String) -> PrimaryExpression>
                 })
             ))
-        ).map(|(name, f)| f(name)).boxed();
+        ).map(|(name, f)| f(name));
 
         let primary = choice((
             literal.clone(),
             ident_based.clone(),
-        )).map(Expression::Primary).boxed();
+        )).map(Expression::Primary);
 
         let paren_expr = expr
             .clone()
             .delimited_by(just(Token::LParen), just(Token::RParen))
-            .map(|e| Expression::Paren(Box::new(e)))
-            .boxed();
+            .map(|e| Expression::Paren(Box::new(e)));
 
         let atom = choice((
             just(Token::If)
@@ -187,12 +157,10 @@ pub fn expression_parser<'a>(
                     cond: Box::new(cond),
                     then: Box::new(then),
                     els: Box::new(els),
-                })
-                .boxed(),
+                }),
             just(Token::Loop)
                 .ignore_then(expr.clone())
-                .map(|e| Expression::Loop(Box::new(e)))
-                .boxed(),
+                .map(|e| Expression::Loop(Box::new(e))),
             just(Token::Do)
                 .ignore_then(
                     choice((
@@ -215,7 +183,7 @@ pub fn expression_parser<'a>(
                         .map(|((name, ty), expr)| Binding { name, ty, expr })
                         .repeated()
                         .collect::<Vec<_>>()
-                        .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+                        .delimited_by(just(Token::LBrace), just(Token::RBrace))
                 )
                 .map(|((stmts, result), bindings)| {
                     Expression::Block(BlockExpression {
@@ -223,11 +191,10 @@ pub fn expression_parser<'a>(
                         result: Box::new(result),
                         bindings,
                     })
-                })
-                .boxed(),
+                }),
             primary,
             paren_expr.clone(),
-        )).memoized().boxed();
+        ));
 
         atom.foldl(
             choice((literal, ident_based))
@@ -273,7 +240,7 @@ pub fn parser<'a>() -> Boxed<'a, 'a, &'a [Token], Vec<TopLevel>, ParserExtra<'a>
             .delimited_by(just(Token::LBrace), just(Token::RBrace))
             .map(ProtocolDefinitionBody::Methods),
         protocol_literal.map(ProtocolDefinitionBody::Literal)
-    )).boxed();
+    ));
 
     let using = just(Token::Using)
         .ignore_then(
@@ -290,8 +257,7 @@ pub fn parser<'a>() -> Boxed<'a, 'a, &'a [Token], Vec<TopLevel>, ParserExtra<'a>
                 parts,
                 from,
             })
-        })
-        .boxed();
+        });
 
     let function = ident
         .then(
@@ -311,19 +277,21 @@ pub fn parser<'a>() -> Boxed<'a, 'a, &'a [Token], Vec<TopLevel>, ParserExtra<'a>
                 .then(type_literal.clone())
                 .map(|(name, ty)| ParamDef { name, ty })
                 .repeated()
-                .collect::<Vec<_>>(),
+                .collect::<Vec<ParamDef>>()
         )
-        .then_ignore(just(Token::RAngle))
-        .then(type_literal.clone())
-        .then_ignore(just(Token::Is))
-        .then(choice((
-            just(Token::Hash)
-                .ignore_then(ident)
-                .map(FunctionBody::Intrinsic),
-            expression.clone().map(FunctionBody::Expr),
-        )))
+        .then(
+            just(Token::RAngle)
+            .ignore_then(type_literal.clone())
+            .then_ignore(just(Token::Is))
+            .then(choice((
+                just(Token::Hash)
+                    .ignore_then(ident)
+                    .map(FunctionBody::Intrinsic),
+                expression.clone().map(FunctionBody::Expr),
+            )))
+        )
         .then_ignore(just(Token::Semicolon))
-        .map(|((((name, protocol_defs), params), return_type), body)| {
+        .map(|(((name, protocol_defs), params), (return_type, body))| {
             TopLevel::Function(Function {
                 name,
                 protocol_defs: protocol_defs.unwrap_or_default(),
@@ -331,24 +299,21 @@ pub fn parser<'a>() -> Boxed<'a, 'a, &'a [Token], Vec<TopLevel>, ParserExtra<'a>
                 return_type,
                 body,
             })
-        })
-        .boxed();
+        });
 
     let type_definition = just(Token::Dollar)
         .ignore_then(ident)
         .then_ignore(just(Token::Is))
         .then(type_literal.clone())
         .then_ignore(just(Token::Semicolon))
-        .map(|(name, ty)| TopLevel::TypeDefinition(TypeDefinition { name, ty }))
-        .boxed();
+        .map(|(name, ty)| TopLevel::TypeDefinition(TypeDefinition { name, ty }));
 
     let protocol_definition = just(Token::Caret)
         .ignore_then(ident)
         .then_ignore(just(Token::Is))
         .then(protocol_def_body)
         .then_ignore(just(Token::Semicolon))
-        .map(|(name, body)| TopLevel::ProtocolDefinition(ProtocolDefinition { name, body }))
-        .boxed();
+        .map(|(name, body)| TopLevel::ProtocolDefinition(ProtocolDefinition { name, body }));
 
     choice((using, function, type_definition, protocol_definition))
         .repeated()

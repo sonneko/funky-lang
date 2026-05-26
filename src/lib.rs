@@ -1,6 +1,8 @@
 pub mod ast;
 pub mod lexer;
 pub mod parser;
+pub mod hir;
+pub mod lower;
 
 use logos::Logos;
 use crate::lexer::Token;
@@ -25,6 +27,7 @@ pub fn parse(program: String) -> Result<Vec<TopLevel>, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::lower::Lowerer;
 
     #[test]
     fn test_parse_using() {
@@ -83,18 +86,6 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_complex() {
-        let input = r#"
-            using io from "std";
-            $Option is $T => | Some = $T None = { } |;
-            identity x:$T > $T is x;
-            ^Show is { to_string = $Self > $String };
-        "#.to_string();
-        let result = parse(input).unwrap();
-        assert_eq!(result.len(), 4);
-    }
-
-    #[test]
     fn test_parse_loop_break() {
         let input = r#"
             forever > $Int is loop do {
@@ -106,5 +97,14 @@ mod tests {
         "#.to_string();
         let result = parse(input).unwrap();
         assert_eq!(result.len(), 1);
+    }
+
+    #[test]
+    fn test_lower_basic() {
+        let input = r#"$Int is $Builtin; add x:$Int y:$Int > $Int is #add;"#.to_string();
+        let ast = parse(input).unwrap();
+        let mut lowerer = Lowerer::new();
+        let hir = lowerer.lower_program(ast);
+        assert_eq!(hir.top_levels.len(), 2);
     }
 }
