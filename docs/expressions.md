@@ -3,23 +3,23 @@
 In Funky, almost everything is an expression that returns a value.
 
 ## Conditional Expression (`if`)
-The `if` expression requires both `then` and `else` branches.
+The `if` expression requires both `then` and `else` branches. Both branches must return the same type.
 
 ```
 if condition then true_value else false_value
 ```
 
 ## Loop Expression (`loop`)
-The `loop` expression repeatedly evaluates an expression.
+The `loop` expression repeatedly evaluates its inner expression. It typically returns the value provided by a `break` expression.
 
 ```
 loop do {
-    if stop then break 0 else continue
+    if stop then break 0 else 1
 } where { ... }
 ```
 
 ## Block Expression (`do-where`)
-The `do-where` block allows for a sequence of expressions with local bindings.
+The `do-where` block provides a way to sequence expressions and define local bindings.
 
 ```
 do {
@@ -31,25 +31,29 @@ do {
     var2 = val2
 }
 ```
-Bindings in the `where` clause are available within the `do` block. The last expression in the `do` block is the result of the entire block.
 
-### Break
-The `break` keyword can be used to exit a loop with a value.
+### Scoping and Bindings
+- Bindings in the `where` clause are lexically scoped to the `do` block and the `where` clause itself (allowing for recursive or interdependent bindings).
+- The `do` block contains a sequence of expressions. All but the last must be followed by a semicolon.
+- The value of the last expression is the value of the entire `do-where` block.
+
+## Break Expression
+The `break` keyword is followed by an expression. It is used to exit the nearest enclosing `loop` and provides the loop's return value.
 
 ```
 break expression
 ```
+Note: While the grammar allows `break` within any `do` block, its semantic meaning is tied to loop termination.
 
-## Literals
-- **Literal**: Numbers, strings, etc.
-- **Struct Literal**: `TypeName { field1 = expr1 field2 = expr2 }`
-- **Enum Literal**: `VariantName(expression)`
+## Literals and Construction
+- **Literal**: Basic values like integers, floats, or strings.
+- **Struct Literal**: `TypeName { field1 = expr1 field2 = expr2 }` initializes a struct.
+- **Enum Literal**: `VariantName(expression)` constructs an enum variant.
 
 ## Period Access
-Fields and methods are accessed using the `.` notation.
+Used for field access or accessing functions associated with a type/protocol.
 
 ```
 point.x
 ```
-
-This can also be used for chaining: `a.b.c`.
+Chaining is supported: `person.address.city`.

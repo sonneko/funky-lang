@@ -1,41 +1,42 @@
 # Protocols
 
-Protocols define a set of required functions that a type must implement. They are prefixed with `^`.
+Protocols define a set of required function signatures. They are the primary mechanism for polymorphism and abstraction in Funky.
 
 ## Protocol Definition
-A protocol is defined with its name and a body containing function signatures.
+A protocol is defined with the `^` prefix and contains a list of field names mapped to function types.
 
 ```
 ^Show is {
     to_string = $Self > $String
 };
 ```
+Within a protocol, `$Self` (or a similar convention) would typically refer to the type that implements the protocol.
 
 ## Protocol Composition
-Protocols can be composed of other protocols using the `+` operator.
+Protocols can be combined using the `+` operator. A type satisfying a composed protocol must satisfy all of its constituent protocols.
 
 ```
 ^EqShow is ^Eq + ^Show;
 ```
 
-## Protocol Usage
-Protocols are primarily used to constrain generic type parameters.
+## Constraints
+Protocols are used to constrain generic type parameters in functions and type definitions.
 
-### In Function Definitions
+### Function Constraints
 ```
-print_it $T:^Show => x:$T > $Unit is
-    print (x.to_string);
+print_all $T:^Show => list:$List<$T> > $Unit is
+    #builtin_print_list;
 ```
 
-### In Type Definitions
-Types can also have protocol constraints on their generic parameters.
-
+### Type Constraints
 ```
-$SortedList is $T:^Comparable => {
-    elements = $List<$T>
+$TreeMap is $K:^Comparable $V => {
+    root = $Option<$Node<$K, $V>>
 }
 ```
 
-## Protocol Implementation
-(Based on the grammar, explicit implementation blocks are not visible, suggesting either structural adherence or that implementation is implied when a type's fields match the protocol's required functions.)
-In Funky, if a type has functions or fields that match the requirements of a protocol, it can be used where that protocol is required.
+## Adherence
+A type "implements" a protocol if it provides definitions for all the functions listed in the protocol's body. Since Funky uses structural typing for these requirements, no explicit `implements` keyword is needed; if the type has the required structure/fields, it satisfies the protocol.
+
+### Implementation Details
+In practice, this is resolved during type checking. For the LLVM backend, this may involve passing "vtable" dictionaries or monomorphizing generic functions.

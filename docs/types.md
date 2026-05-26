@@ -3,14 +3,14 @@
 Funky features a strong, static type system with support for structural types, algebraic data types (enums), and generics.
 
 ## Type Definitions
-New types can be defined using the `$` prefix.
+New types can be defined using the `$` prefix. These definitions create **nominal types** that can be referenced by name throughout the program.
 
 ```
 $MyInt is $BuiltinInt;
 ```
 
 ## Structural Types (Structs)
-Structs are defined using curly braces `{}`. They can have optional generic parameters.
+Structs are defined using curly braces `{}`. They represent a record of fields, each with a specific type.
 
 ```
 $Point is {
@@ -19,7 +19,9 @@ $Point is {
 }
 ```
 
-Generic struct:
+### Generic Structs
+Structs can declare generic type parameters using the `($ID)* =>` syntax before the body.
+
 ```
 $Box is $T => {
     value = $T
@@ -27,7 +29,7 @@ $Box is $T => {
 ```
 
 ## Algebraic Data Types (Enums)
-Enums (Sum types) are defined using pipe symbols `||`.
+Enums (Sum types) represent a choice between several variants, each optionally carrying a value. They are defined using pipe symbols `||`.
 
 ```
 $Option is $T => |
@@ -37,7 +39,7 @@ $Option is $T => |
 ```
 
 ## Function Types
-Function types use the `>` symbol to separate parameters and the return type.
+Function types use the `>` symbol. They are naturally curried, meaning a function of multiple arguments is a sequence of nested functions.
 
 ```
 $Int > $Int > $Int
@@ -48,8 +50,19 @@ Functions can also have protocol constraints:
 $T : ^Show => $T > $String
 ```
 
-## Generics
-Generic parameters are identifiers prefixed with `$`. They can appear in type definitions and function signatures.
+## Generic Type Application
+When using a generic type, arguments are passed within angle brackets `< >`.
+
+```
+$IntList is $List<$Int>;
+```
+
+## Structural vs. Nominal Typing
+- **Structural**: Anonymous type bodies `{...}` or `|...|` are matched based on their structure.
+- **Nominal**: Types defined with `$ID is ...` are distinct, but may be used as aliases or for creating specific named instances.
+
+## Recursion
+Types can be recursive, which is essential for defining data structures like lists or trees.
 
 ```
 $List is $T => |
@@ -57,10 +70,3 @@ $List is $T => |
     Nil = {}
 |
 ```
-
-## Type Literals
-Type literals can be:
-- A structural type body: `{ field = Type }`
-- An enum type body: `| Variant = Type |`
-- A function type body: `Type > Type`
-- A type identifier: `$Identifier` (optionally with generic arguments `<Type1, Type2>`)

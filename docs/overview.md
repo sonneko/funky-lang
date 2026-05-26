@@ -1,46 +1,57 @@
 # Language Overview
 
-This document provides a high-level overview of the programming language (referred to as "Funky"). Funky is a functional-first language designed with a strong, static type system, structural typing, and a powerful protocol-based polymorphism.
+Funky is a functional-first language designed with a strong, static type system, structural typing, and protocol-based polymorphism. It is compiled to machine code via LLVM and is implemented in Rust.
 
 ## Key Features
 
-- **Functional Programming**: Functions are first-class citizens. Expressions are preferred over statements.
-- **Structural and Algebraic Data Types**: Easy-to-define structs and enums with structural subtyping or explicit type definitions.
-- **Protocol-based Polymorphism**: A flexible protocol system (similar to traits or interfaces) to define shared behavior.
-- **Generic Programming**: Type parameters are denoted by the `$` prefix and can be constrained by protocols.
-- **Unique Block Expressions**: `do-where` blocks provide a clean way to write procedural-looking code with local bindings.
-- **Curried Functions**: Function types and calls support a natural currying syntax.
+- **Functional Foundations**: First-class functions, currying, and expression-based syntax.
+- **Advanced Type System**: Structural and nominal typing, sum types (enums), and recursion.
+- **Protocols**: Flexible polymorphism through protocol constraints and composition.
+- **Clean Local Bindings**: The `do-where` construct for readable procedural-style logic in a functional context.
 
-## Basic Syntax
+## A Complete Example
 
-### Top-level Definitions
-A program consists of imports (`using`), function definitions, type definitions, and protocol definitions.
+The following example demonstrates a program that defines a protocol, a type, and functions to work with them.
 
 ```
-using std.io from "std";
+# Import functions from the standard library
+using std.io as io from "std";
 
-$Int is ...;
-
-^Add is {
-    add = $Int > $Int > $Int
+# Define a protocol for types that can be described as strings
+^Describe is {
+    describe = $Self > $String
 };
 
-add x:$Int y:$Int > $Int is #add_int;
+# Define a generic Option type
+$Option is $T => |
+    Some = $T
+    None = {}
+|;
+
+# Define a Person struct
+$Person is {
+    name = $String
+    age = $Int
+};
+
+# Define a function with protocol constraints
+# It takes a type $T that satisfies ^Describe
+print_description $T:^Describe => item:$T > $Unit is
+    io.println (item.describe);
+
+# Define a function that uses a do-where block
+main > $Int is
+    do {
+        io.println p.name;
+        print_description p;
+        0
+    } where {
+        p : $Person = Person {
+            name = "Alice"
+            age = 30
+        }
+    }
 ```
 
-### Functions
-Functions are defined with their name, optional protocol constraints, parameters, and a body.
-
-```
-identity x:$T > $T is x;
-```
-
-### Expressions
-Everything is an expression, including `if`, `loop`, and `do` blocks.
-
-```
-if condition then true_val else false_val
-```
-
-## Compilation
-The Funky compiler is implemented in Rust and uses LLVM as the backend to produce efficient machine code.
+## Compiler Design
+The compiler is written in Rust and uses LLVM as its backend. It performs rigorous type checking and protocol resolution before generating optimized LLVM IR.
