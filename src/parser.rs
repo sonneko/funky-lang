@@ -21,7 +21,8 @@ pub fn type_literal_parser<'a>() -> Boxed<'a, 'a, &'a [Token], TypeLiteral, Pars
             .map(|(name, args)| TypeLiteral::Reference {
                 name,
                 args: args.unwrap_or_default(),
-            });
+            })
+            .boxed();
 
         let struct_body = just(Token::Dollar)
             .ignore_then(ident)
@@ -42,7 +43,8 @@ pub fn type_literal_parser<'a>() -> Boxed<'a, 'a, &'a [Token], TypeLiteral, Pars
                     generics: generics.unwrap_or_default(),
                     fields,
                 })
-            });
+            })
+            .boxed();
 
         let enum_body = just(Token::Dollar)
             .ignore_then(ident)
@@ -63,7 +65,8 @@ pub fn type_literal_parser<'a>() -> Boxed<'a, 'a, &'a [Token], TypeLiteral, Pars
                     generics: generics.unwrap_or_default(),
                     variants,
                 })
-            });
+            })
+            .boxed();
 
         let protocol_literal = just(Token::Caret)
             .ignore_then(ident)
@@ -71,33 +74,47 @@ pub fn type_literal_parser<'a>() -> Boxed<'a, 'a, &'a [Token], TypeLiteral, Pars
             .at_least(1)
             .collect::<Vec<_>>();
 
-        let fn_body = just(Token::Dollar)
+        let constraint = just(Token::Dollar)
             .ignore_then(ident)
             .then_ignore(just(Token::Colon))
             .then(protocol_literal.clone().map(ProtocolDefinitionBody::Literal))
-            .map(|(name, body)| ProtocolConstraint { name, body })
+            .map(|(name, body)| ProtocolConstraint { name, body });
+
+        let constraints = constraint
             .repeated()
-            .at_least(1)
             .collect::<Vec<_>>()
             .then_ignore(just(Token::FatArrow))
-            .or_not()
-            .then(type_literal.clone())
-            .then_ignore(just(Token::RAngle))
-            .then(type_literal)
-            .map(|((constraints, param_ty), return_ty)| {
-                TypeLiteral::Fn(FnTypeBody {
-                    constraints: constraints.unwrap_or_default(),
-                    param_ty: Box::new(param_ty),
-                    return_ty: Box::new(return_ty),
-                })
-            });
+            .boxed();
 
-        choice((
-            struct_body,
-            enum_body,
-            fn_body,
-            reference,
-        )).memoized()
+        let base_type = choice((struct_body, enum_body, reference)).boxed();
+
+        let fn_type = constraints.or_not()
+            .then(base_type.clone())
+            .then(just(Token::RAngle).ignore_then(type_literal.clone()).repeated().collect::<Vec<_>>())
+            .map(|((constraints, first), rest)| {
+                let constraints = constraints.unwrap_or_default();
+                if rest.is_empty() && constraints.is_empty() {
+                    first
+                } else {
+                    let all = std::iter::once(first).chain(rest).collect::<Vec<_>>();
+                    let mut it = all.into_iter().rev();
+                    let mut current = it.next().unwrap();
+                    for param in it {
+                        current = TypeLiteral::Fn(FnTypeBody {
+                            constraints: vec![],
+                            param_ty: Box::new(param),
+                            return_ty: Box::new(current),
+                        });
+                    }
+                    if let TypeLiteral::Fn(ref mut f) = current {
+                        f.constraints = constraints;
+                    }
+                    current
+                }
+            })
+            .boxed();
+
+        fn_type.memoized()
     })
     .boxed()
 }
@@ -115,43 +132,49 @@ pub fn expression_parser<'a>(
             int.map(|i| PrimaryExpression::Literal(Literal::Int(i))),
             float.map(|f| PrimaryExpression::Literal(Literal::Float(f))),
             string.map(|s| PrimaryExpression::Literal(Literal::String(s))),
-        ));
+        )).boxed();
 
-        let struct_literal = ident
-            .then(
+        let ident_based = ident.then(
+            choice((
                 ident
                     .then_ignore(just(Token::Eq))
                     .then(expr.clone())
                     .repeated()
                     .collect::<Vec<_>>()
-                    .delimited_by(just(Token::LBrace), just(Token::RBrace)),
-            )
-            .map(|(name, fields)| PrimaryExpression::StructLiteral { name, fields });
-
-        let enum_literal = ident
-            .then(expr.clone().delimited_by(just(Token::LParen), just(Token::RParen)))
-            .map(|(name, arg)| PrimaryExpression::EnumLiteral {
-                name,
-                arg: Box::new(arg),
-            });
-
-        let period_access = ident
-            .separated_by(just(Token::Dot))
-            .at_least(1)
-            .collect::<Vec<_>>()
-            .map(PrimaryExpression::PeriodAccess);
+                    .delimited_by(just(Token::LBrace), just(Token::RBrace))
+                    .map(|fields| {
+                        Box::new(move |name| PrimaryExpression::StructLiteral { name, fields }) as Box<dyn FnOnce(String) -> PrimaryExpression>
+                    }),
+                expr.clone()
+                    .delimited_by(just(Token::LParen), just(Token::RParen))
+                    .map(|arg| {
+                        Box::new(move |name| PrimaryExpression::EnumLiteral { name, arg: Box::new(arg) }) as Box<dyn FnOnce(String) -> PrimaryExpression>
+                    }),
+                just(Token::Dot)
+                    .ignore_then(ident.separated_by(just(Token::Dot)).collect::<Vec<_>>())
+                    .map(|rest| {
+                        Box::new(move |name| {
+                            let mut parts = vec![name];
+                            parts.extend(rest);
+                            PrimaryExpression::PeriodAccess(parts)
+                        }) as Box<dyn FnOnce(String) -> PrimaryExpression>
+                    }),
+                empty().map(|_| {
+                    Box::new(move |name| PrimaryExpression::PeriodAccess(vec![name])) as Box<dyn FnOnce(String) -> PrimaryExpression>
+                })
+            ))
+        ).map(|(name, f)| f(name)).boxed();
 
         let primary = choice((
             literal.clone(),
-            struct_literal.clone(),
-            enum_literal.clone(),
-            period_access.clone()
-        )).map(Expression::Primary);
+            ident_based.clone(),
+        )).map(Expression::Primary).boxed();
 
         let paren_expr = expr
             .clone()
             .delimited_by(just(Token::LParen), just(Token::RParen))
-            .map(|e| Expression::Paren(Box::new(e)));
+            .map(|e| Expression::Paren(Box::new(e)))
+            .boxed();
 
         let atom = choice((
             just(Token::If)
@@ -164,10 +187,12 @@ pub fn expression_parser<'a>(
                     cond: Box::new(cond),
                     then: Box::new(then),
                     els: Box::new(els),
-                }),
+                })
+                .boxed(),
             just(Token::Loop)
                 .ignore_then(expr.clone())
-                .map(|e| Expression::Loop(Box::new(e))),
+                .map(|e| Expression::Loop(Box::new(e)))
+                .boxed(),
             just(Token::Do)
                 .ignore_then(
                     choice((
@@ -179,7 +204,7 @@ pub fn expression_parser<'a>(
                     .repeated()
                     .collect::<Vec<_>>()
                     .then(expr.clone())
-                    .delimited_by(just(Token::LBrace), just(Token::RBrace)),
+                    .delimited_by(just(Token::LBrace), just(Token::RBrace))
                 )
                 .then_ignore(just(Token::Where))
                 .then(
@@ -198,13 +223,14 @@ pub fn expression_parser<'a>(
                         result: Box::new(result),
                         bindings,
                     })
-                }),
+                })
+                .boxed(),
             primary,
             paren_expr.clone(),
-        )).memoized();
+        )).memoized().boxed();
 
         atom.foldl(
-            choice((literal, struct_literal, enum_literal, period_access))
+            choice((literal, ident_based))
                 .map(Expression::Primary)
                 .or(paren_expr)
                 .repeated(),
@@ -223,49 +249,49 @@ pub fn parser<'a>() -> Boxed<'a, 'a, &'a [Token], Vec<TopLevel>, ParserExtra<'a>
     let ident = select! { Token::Identifier(i) => i };
     let string = select! { Token::StringLiteral(s) => s };
 
-    let methods = ident
-        .then_ignore(just(Token::Eq))
-        .then(type_literal.clone().map(|t| match t {
-            TypeLiteral::Fn(f) => f,
-            _ => {
-                FnTypeBody {
-                    constraints: vec![],
-                    param_ty: Box::new(t),
-                    return_ty: Box::new(TypeLiteral::Reference { name: "Error".to_string(), args: vec![] }),
-                }
-            }
-        }))
-        .repeated()
-        .collect::<Vec<_>>()
-        .delimited_by(just(Token::LBrace), just(Token::RBrace))
-        .map(ProtocolDefinitionBody::Methods);
-
     let protocol_literal = just(Token::Caret)
         .ignore_then(ident)
         .separated_by(just(Token::Plus))
         .at_least(1)
-        .collect::<Vec<_>>()
-        .map(ProtocolDefinitionBody::Literal);
+        .collect::<Vec<_>>();
 
-    let protocol_def_body = choice((methods, protocol_literal));
+    let protocol_def_body = choice((
+        ident
+            .then_ignore(just(Token::Eq))
+            .then(type_literal.clone().map(|t| match t {
+                TypeLiteral::Fn(f) => f,
+                _ => {
+                    FnTypeBody {
+                        constraints: vec![],
+                        param_ty: Box::new(t),
+                        return_ty: Box::new(TypeLiteral::Reference { name: "Error".to_string(), args: vec![] }),
+                    }
+                }
+            }))
+            .repeated()
+            .collect::<Vec<_>>()
+            .delimited_by(just(Token::LBrace), just(Token::RBrace))
+            .map(ProtocolDefinitionBody::Methods),
+        protocol_literal.map(ProtocolDefinitionBody::Literal)
+    )).boxed();
 
     let using = just(Token::Using)
         .ignore_then(
             ident
                 .then(just(Token::As).ignore_then(ident).or_not())
                 .repeated()
-                .collect::<Vec<_>>(),
+                .collect::<Vec<(String, Option<String>)>>(),
         )
         .then_ignore(just(Token::From))
         .then(string)
         .then_ignore(just(Token::Semicolon))
         .map(|(parts, from)| {
             TopLevel::Using(Using {
-                name: parts.last().map(|(n, _)| n.clone()).unwrap_or_default(),
-                alias: parts.last().and_then(|(_, a)| a.clone()),
+                parts,
                 from,
             })
-        });
+        })
+        .boxed();
 
     let function = ident
         .then(
@@ -305,21 +331,24 @@ pub fn parser<'a>() -> Boxed<'a, 'a, &'a [Token], Vec<TopLevel>, ParserExtra<'a>
                 return_type,
                 body,
             })
-        });
+        })
+        .boxed();
 
     let type_definition = just(Token::Dollar)
         .ignore_then(ident)
         .then_ignore(just(Token::Is))
         .then(type_literal.clone())
         .then_ignore(just(Token::Semicolon))
-        .map(|(name, ty)| TopLevel::TypeDefinition(TypeDefinition { name, ty }));
+        .map(|(name, ty)| TopLevel::TypeDefinition(TypeDefinition { name, ty }))
+        .boxed();
 
     let protocol_definition = just(Token::Caret)
         .ignore_then(ident)
         .then_ignore(just(Token::Is))
         .then(protocol_def_body)
         .then_ignore(just(Token::Semicolon))
-        .map(|(name, body)| TopLevel::ProtocolDefinition(ProtocolDefinition { name, body }));
+        .map(|(name, body)| TopLevel::ProtocolDefinition(ProtocolDefinition { name, body }))
+        .boxed();
 
     choice((using, function, type_definition, protocol_definition))
         .repeated()

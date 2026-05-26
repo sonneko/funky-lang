@@ -49,7 +49,7 @@ mod tests {
 
     #[test]
     fn test_parse_enum_def() {
-        let input = r#"$Option is $T => | Some = $T None = {} |;"#.to_string();
+        let input = r#"$Option is $T => | Some = $T None = { } |;"#.to_string();
         let result = parse(input).unwrap();
         assert_eq!(result.len(), 1);
     }
@@ -86,7 +86,7 @@ mod tests {
     fn test_parse_complex() {
         let input = r#"
             using io from "std";
-            $Option is $T => | Some = $T None = {} |;
+            $Option is $T => | Some = $T None = { } |;
             identity x:$T > $T is x;
             ^Show is { to_string = $Self > $String };
         "#.to_string();
@@ -97,8 +97,9 @@ mod tests {
     #[test]
     fn test_parse_loop_break() {
         let input = r#"
-            forever > $Unit is loop do {
-                if stop then break {} else {}
+            forever > $Int is loop do {
+                break 0
+                1
             } where {
                 stop = #check_stop
             };

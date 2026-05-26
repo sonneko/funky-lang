@@ -8,8 +8,7 @@ pub enum TopLevel {
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Using {
-    pub name: String,
-    pub alias: Option<String>,
+    pub parts: Vec<(String, Option<String>)>,
     pub from: String,
 }
 
