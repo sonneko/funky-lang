@@ -1,0 +1,7 @@
+$ Point is { x = $Number y = $Number };
+
+add x : $Number y : $Number > $Number is #add;
+
+print x : $Any > $Any is #print;
+
+main > $Number is 0;
