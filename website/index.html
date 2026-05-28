@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Funky Playground</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&family=Roboto+Mono&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>Funky Playground</h1>
+        <button id="run-btn">Run</button>
+      </header>
+
+      <main>
+        <section id="editor-container">
+          <div id="editor"></div>
+        </section>
+
+        <section id="output-container">
+          <h2>Output</h2>
+          <pre id="output"></pre>
+        </section>
+
+        <section id="description">
+          <h2>About Funky</h2>
+          <div class="content">
+            <p>Funky is a functional-first, expression-oriented, and statically typed language.</p>
+            <h3>Key Features</h3>
+            <ul>
+              <li><strong>Structural Typing:</strong> Support for structs and algebraic data types (enums).</li>
+              <li><strong>Protocol-based Polymorphism:</strong> Define and use protocols (traits/interfaces) with <code>^</code> prefix.</li>
+              <li><strong>Curried Functions:</strong> Functions are curried by default.</li>
+              <li><strong>Do-Where Blocks:</strong> Sequencing expressions and defining local variable bindings.</li>
+              <li><strong>Type Prefixes:</strong> Types and generic parameters use <code>$</code> prefix.</li>
+            </ul>
+            <h3>Syntax Examples</h3>
+            <pre><code>
+$Point is { x = $Int y = $Int };
+
+add x: $Int y: $Int > $Int is
+  x + y;
+
+$Option is $T => | Some = $T None = $Unit |;
+
+main > $Unit is
+  do {
+    log "Hello, Funky!";
+  } where {
+    log = #console_log
+  };
+            </code></pre>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
