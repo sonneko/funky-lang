@@ -266,7 +266,7 @@ export class ParseError extends Error {
 export class Parser {
   private pos = 0;
 
-  constructor(private tokens: Token[]) {}
+  constructor(private tokens: Token[]) { }
 
   // ---- Helpers ----
 

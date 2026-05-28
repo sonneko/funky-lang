@@ -2,10 +2,8 @@ import type {
   Program, TopLevel,
   UsingDecl, FunctionDecl, TypeDefinition, ProtocolDefinition,
   TypeLiteral, StructTypeBody, EnumTypeBody, FnTypeBody, NamedType,
-  ProtocolDefinitionBody, ProtocolDefinitionBodyOrLiteral, ProtocolLiteral,
-  Expression, IfExpression, CallExpression, BlockExpression,
-  PrimaryExpression, ParenExpression,
-  StructLiteral, EnumLiteral, PeriodAccess, Literal,
+  ProtocolLiteral, Expression, IfExpression, CallExpression,
+  BlockExpression, StructLiteral, EnumLiteral,
 } from "./parser.ts";
 
 // ============================================================
@@ -24,8 +22,8 @@ class CodeWriter {
   private lines: string[] = [];
   private depth = 0;
 
-  indent()  { this.depth++; }
-  dedent()  { this.depth--; }
+  indent() { this.depth++; }
+  dedent() { this.depth--; }
 
   write(line: string) {
     const pad = "  ".repeat(this.depth);
@@ -126,9 +124,9 @@ export class Transpiler {
 
   private emitTopLevel(w: CodeWriter, node: TopLevel) {
     switch (node.kind) {
-      case "UsingDecl":        return this.emitUsing(w, node);
-      case "FunctionDecl":     return this.emitFunction(w, node);
-      case "TypeDefinition":   return this.emitTypeDefinition(w, node);
+      case "UsingDecl": return this.emitUsing(w, node);
+      case "FunctionDecl": return this.emitFunction(w, node);
+      case "TypeDefinition": return this.emitTypeDefinition(w, node);
       case "ProtocolDefinition": return this.emitProtocol(w, node);
     }
   }
@@ -282,12 +280,12 @@ export class Transpiler {
     // Generic type params from protocol constraints
     const generics = protocols.length
       ? `<${protocols.map(p => {
-          const lit = (p.body as any).literal as ProtocolLiteral | undefined;
-          const constraint = lit
-            ? lit.names.map(n => `${n}<${p.name}>`).join(" & ")
-            : (this.scope.protocols.has(p.name) ? `${p.name}<${p.name}>` : "unknown");
-          return `${p.name} extends ${constraint}`;
-        }).join(", ")}>`
+        const lit = (p.body as any).literal as ProtocolLiteral | undefined;
+        const constraint = lit
+          ? lit.names.map(n => `${n}<${p.name}>`).join(" & ")
+          : (this.scope.protocols.has(p.name) ? `${p.name}<${p.name}>` : "unknown");
+        return `${p.name} extends ${constraint}`;
+      }).join(", ")}>`
       : "";
 
     // Curried parameter list
@@ -322,10 +320,10 @@ export class Transpiler {
 
   emitTypeLiteral(type: TypeLiteral): string {
     switch (type.kind) {
-      case "NamedType":      return this.emitNamedType(type);
+      case "NamedType": return this.emitNamedType(type);
       case "StructTypeBody": return this.emitStructTypeLiteral(type);
-      case "EnumTypeBody":   return this.emitEnumTypeLiteral(type);
-      case "FnTypeBody":     return this.emitFnTypeLiteral(type);
+      case "EnumTypeBody": return this.emitEnumTypeLiteral(type);
+      case "FnTypeBody": return this.emitFnTypeLiteral(type);
     }
   }
 
@@ -363,18 +361,18 @@ export class Transpiler {
 
   emitExpression(expr: Expression): string {
     switch (expr.kind) {
-      case "IfExpression":    return this.emitIf(expr);
-      case "CallExpression":  return this.emitCall(expr);
+      case "IfExpression": return this.emitIf(expr);
+      case "CallExpression": return this.emitCall(expr);
       case "BlockExpression": return this.emitBlock(expr);
       case "ParenExpression": return `(${this.emitExpression(expr.expr)})`;
 
       // PrimaryExpression variants
-      case "StringLiteral":   return JSON.stringify(expr.value);
-      case "NumberLiteral":   return expr.value;
-      case "BoolLiteral":     return expr.value ? "true" : "false";
-      case "StructLiteral":   return this.emitStructLit(expr);
-      case "EnumLiteral":     return this.emitEnumLit(expr);
-      case "PeriodAccess":    return expr.parts.join(".");
+      case "StringLiteral": return JSON.stringify(expr.value);
+      case "NumberLiteral": return expr.value;
+      case "BoolLiteral": return expr.value ? "true" : "false";
+      case "StructLiteral": return this.emitStructLit(expr);
+      case "EnumLiteral": return this.emitEnumLit(expr);
+      case "PeriodAccess": return expr.parts.join(".");
     }
   }
 
@@ -386,7 +384,7 @@ export class Transpiler {
   private emitIf(expr: IfExpression): string {
     const cond = this.emitExpression(expr.condition);
     const then = this.emitExpression(expr.then);
-    const els  = this.emitExpression(expr.else);
+    const els = this.emitExpression(expr.else);
     return `(${cond} ? ${then} : ${els})`;
   }
 
@@ -402,7 +400,7 @@ export class Transpiler {
 
   private emitCall(expr: CallExpression): string {
     const callee = this.emitExpression(expr.callee);
-    const arg    = this.emitExpression(expr.arg);
+    const arg = this.emitExpression(expr.arg);
     return `${callee}(${arg})`;
   }
 
@@ -488,20 +486,20 @@ export class Transpiler {
 
 function mapBuiltinType(name: string): string {
   const map: Record<string, string> = {
-    Int:     "number",
-    Float:   "number",
-    Number:  "number",
-    String:  "string",
-    Bool:    "boolean",
-    Unit:    "void",
-    Never:   "never",
-    Any:     "unknown",
-    List:    "Array",
-    Array:   "Array",
-    Map:     "Map",
-    Set:     "Set",
-    Option:  "Option",
-    Result:  "Result",
+    Int: "number",
+    Float: "number",
+    Number: "number",
+    String: "string",
+    Bool: "boolean",
+    Unit: "void",
+    Never: "never",
+    Any: "unknown",
+    List: "Array",
+    Array: "Array",
+    Map: "Map",
+    Set: "Set",
+    Option: "Option",
+    Result: "Result",
   };
   return map[name] ?? name;
 }
