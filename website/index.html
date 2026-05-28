@@ -33,6 +33,7 @@
             <ul>
               <li><strong>Structural Typing:</strong> Support for structs and algebraic data types (enums).</li>
               <li><strong>Protocol-based Polymorphism:</strong> Define and use protocols (traits/interfaces) with <code>^</code> prefix.</li>
+              <li><strong>Type Generics and Constraints:</strong> Clearly define what can be called.</li>
               <li><strong>Curried Functions:</strong> Functions are curried by default.</li>
               <li><strong>Do-Where Blocks:</strong> Sequencing expressions and defining local variable bindings.</li>
               <li><strong>Type Prefixes:</strong> Types and generic parameters use <code>$</code> prefix.</li>
@@ -52,6 +53,62 @@ main > $Unit is
   } where {
     log = #console_log
   };
+            </code></pre>
+            <h3>Grammar</h3>
+            <pre><code>
+&lt;program&gt; ::= &lt;top_level&gt;*
+&lt;top_level&gt; ::= &lt;using&gt; | &lt;function&gt; | &lt;type_definition&gt; | &lt;protocol_definition&gt;
+
+# using
+&lt;using&gt; ::= &quot;using&quot; ( &lt;identifier&gt; ( &quot;as&quot; &lt;identifier&gt; )? )* &quot;from&quot; &lt;literal&gt; &quot;;&quot;
+
+# function
+&lt;function&gt; ::= &lt;identifier&gt; &lt;protocol_def_list&gt;? &lt;param_def_list&gt; &quot;is&quot;
+&#160; &#160; &#160;( &lt;expression&gt; | &quot;#&quot; &lt;identifier&gt; ) &quot;;&quot;
+&lt;protocol_def_list&gt; ::= ( &quot;$&quot; &lt;identifier&gt;: &lt;protocol_definition_body&gt; )* &quot;=&gt;&quot;
+&lt;param_def_list&gt; ::= &lt;param_def&gt;* &quot;&gt;&quot; &lt;type_literal&gt;
+&lt;param_def&gt; ::= &lt;identifier&gt; &quot;:&quot; &lt;type_literal&gt;
+
+&lt;expression&gt; ::=&#160;
+&#160; &#160; &#160;| &lt;if_expression&gt;
+&#160; &#160; &#160;| &lt;call_expression&gt;
+&#160; &#160; &#160;| &lt;block_expression&gt;
+&#160; &#160; &#160;| &lt;primary_expression&gt;
+&#160; &#160; &#160;| &lt;paren_expression&gt;
+
+&lt;if_expression&gt; ::= &quot;if&quot; &lt;expression&gt; &quot;then&quot; &lt;expression&gt; &quot;else&quot; &lt;expression&gt;
+&lt;call_expression&gt; ::= &lt;expression&gt; &lt;primary_expression&gt;
+&lt;block_expression&gt; ::= &quot;do&quot; &quot;{&quot;
+&#160; &#160; &#160; &#160; &#160;( &lt;expression&gt; &quot;;&quot; | &quot;break&quot; &lt;expression&gt; )*
+&#160; &#160; &#160; &#160; &#160;&lt;expression&gt;
+&#160; &#160; &#160;&quot;}&quot; &quot;where&quot; &quot;{&quot;
+&#160; &#160; &#160; &#160; &#160;( &lt;identifier&gt; ( &quot;:&quot; &lt;type_literal&gt; ) &quot;=&quot; &lt;expression&gt; )*
+&#160; &#160; &#160;&quot;}&quot;
+&lt;primary_expression&gt; ::= &lt;literal&gt; | &lt;struct_literal&gt; | &lt;enum_literal&gt; | &lt;period_access&gt;
+&lt;struct_literal&gt; ::= &lt;identifier&gt; &quot;{&quot;
+&#160; &#160; &#160;( &lt;identifier&gt; &quot;=&quot; &lt;expression&gt; )*
+&quot;}&quot;
+&lt;enum_literal&gt; ::= &lt;identifier&gt; &quot;(&quot; &lt;expression&gt; &quot;)&quot;
+&lt;paren_expression&gt; ::= &quot;(&quot; &lt;expression&gt; &quot;)&quot;
+&lt;period_access&gt; ::= &lt;identifier&gt; ( &quot;.&quot; &lt;identifier&gt; )*
+
+# types
+&lt;type_definition&gt; ::= &quot;$&quot; &lt;identifier&gt; &quot;is&quot; &lt;type_literal&gt; &quot;;&quot;
+&lt;type_literal&gt; ::=
+&#160; &#160; &#160;| &lt;struct_type_body&gt;
+&#160; &#160; &#160;| &lt;enum_type_body&gt;
+&#160; &#160; &#160;| &lt;fn_type_body&gt;
+&#160; &#160; &#160;| &quot;$&quot; &lt;identifier&gt; ( &quot;&lt;&quot; &lt;type_literal&gt;* &quot;&gt;&quot; )?
+&lt;struct_type_body&gt; ::= (( &quot;$&quot; &lt;identifier&gt; )* &quot;=&gt;&quot; )? &quot;{&quot; (&lt;identifier&gt; &quot;=&quot; &lt;type_literal&gt;)* &quot;}&quot;
+&lt;enum_type_body&gt; ::= (( &quot;$&quot; &lt;identifier&gt; )* &quot;=&gt;&quot; )? &quot;|&quot; ( &lt;identifier&gt; &quot;=&quot; &lt;type_literal&gt; )* &quot;|&quot;
+&lt;fn_type_body&gt; ::= ( ( &quot;$&quot; &lt;identifier&gt; &quot;:&quot; &lt;protocol_literal&gt; )* &quot;=&gt;&quot; )? &lt;type_literal&gt; &quot;&gt;&quot; ( &lt;fn_type_body&gt; | &lt;type_literal&gt; )
+
+# protocols
+&lt;protocol_definition&gt; ::= &quot;^&quot; &lt;identifier&gt; &quot;is&quot; &lt;protocol_definition_body&gt; &quot;;&quot;
+&lt;protocol_definition_body&gt; ::= &quot;{&quot;
+&#160; &#160; &#160; ( &lt;identifier&gt; &quot;=&quot; &lt;fn_type_body&gt; )*
+&quot;}&quot; | &lt;protocol_literal&gt;
+&lt;protocol_literal&gt; ::= &quot;^&quot; &lt;identifier&gt; ( &quot;+&quot; &quot;^&quot; &lt;identifier&gt; )*
             </code></pre>
           </div>
         </section>
