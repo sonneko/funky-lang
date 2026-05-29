@@ -104,17 +104,17 @@ impl TypeChecker {
         // 数値演算 (二項: Int -> Int -> Int)
         for op in &["add", "sub", "mul", "div", "mod_"] {
             let ty = Ty::curried([Ty::Int, Ty::Int], Ty::Int);
-            self.env.register_global(op, TypeScheme::mono(ty));
+            self.env.register_global(*op, TypeScheme::mono(ty));
         }
         // 比較 (Int -> Int -> Bool)
         for op in &["eq", "lt", "gt", "le", "ge", "ne"] {
             let ty = Ty::curried([Ty::Int, Ty::Int], Ty::Bool);
-            self.env.register_global(op, TypeScheme::mono(ty));
+            self.env.register_global(*op, TypeScheme::mono(ty));
         }
         // 論理
         for op in &["and", "or"] {
             let ty = Ty::curried([Ty::Bool, Ty::Bool], Ty::Bool);
-            self.env.register_global(op, TypeScheme::mono(ty));
+            self.env.register_global(*op, TypeScheme::mono(ty));
         }
         let not_ty = Ty::fun(Ty::Bool, Ty::Bool);
         self.env.register_global("not", TypeScheme::mono(not_ty));
