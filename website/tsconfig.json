@@ -22,9 +22,9 @@
 
     "baseUrl": ".",
     "paths": {
-      "@funky/*": ["../src/*"]
+      "@funky/*": ["../mock/*"]
     }
   },
-  "include": ["src", "../src"],
-  "exclude": ["../src/*.test.ts"]
+  "include": ["src", "../mock"],
+  "exclude": ["../mock/*.test.ts"]
 }

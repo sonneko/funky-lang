@@ -1,14 +1,14 @@
 [package]
-name = "funky-lang"
+name = "funkylang"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "funky-lang"
+name = "funkylang"
 path = "src/main.rs"
 
 [lib]
-name = "funky-lang"
+name = "funkylang"
 path = "src/lib.rs"
 
 [dev-dependencies]
