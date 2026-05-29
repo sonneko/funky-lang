@@ -82,6 +82,7 @@ pub struct TypeChecker {
     /// 式ノードのスパン → 推論された型 (外部から参照可能)
     pub node_types: HashMap<u64, Ty>,
     /// スパンをキーにする簡易ID (start * 100000 + end)
+    #[allow(unused)]
     span_counter: u64,
 }
 
