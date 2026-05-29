@@ -1,18 +1,19 @@
 [package]
-name = "funkylang"
+name = "funky_lang"
 version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "funkylang"
+name = "funky_lang"
 path = "src/main.rs"
 
 [lib]
-name = "funkylang"
+name = "funky_lang"
 path = "src/lib.rs"
 
-[dev-dependencies]
-# テスト用: cargo test で実行
+[dependencies]
+# rustcのHM型推論実装をベースにしたUnion-Find / 単一化ライブラリ
+ena = "0.14"
 
 [profile.release]
 lto = true
