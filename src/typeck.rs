@@ -82,7 +82,6 @@ pub struct TypeChecker {
     /// 式ノードのスパン → 推論された型 (外部から参照可能)
     pub node_types: HashMap<u64, Ty>,
     /// スパンをキーにする簡易ID (start * 100000 + end)
-    #[allow(unused)]
     span_counter: u64,
 }
 
@@ -105,17 +104,17 @@ impl TypeChecker {
         // 数値演算 (二項: Int -> Int -> Int)
         for op in &["add", "sub", "mul", "div", "mod_"] {
             let ty = Ty::curried([Ty::Int, Ty::Int], Ty::Int);
-            self.env.register_global(*op, TypeScheme::mono(ty));
+            self.env.register_global(op, TypeScheme::mono(ty));
         }
         // 比較 (Int -> Int -> Bool)
         for op in &["eq", "lt", "gt", "le", "ge", "ne"] {
             let ty = Ty::curried([Ty::Int, Ty::Int], Ty::Bool);
-            self.env.register_global(*op, TypeScheme::mono(ty));
+            self.env.register_global(op, TypeScheme::mono(ty));
         }
         // 論理
         for op in &["and", "or"] {
             let ty = Ty::curried([Ty::Bool, Ty::Bool], Ty::Bool);
-            self.env.register_global(*op, TypeScheme::mono(ty));
+            self.env.register_global(op, TypeScheme::mono(ty));
         }
         let not_ty = Ty::fun(Ty::Bool, Ty::Bool);
         self.env.register_global("not", TypeScheme::mono(not_ty));
@@ -361,8 +360,17 @@ impl TypeChecker {
         match lit {
             Literal::String(_) => Ty::String,
             Literal::Number(s) => {
-                // 小数点あり → Float
-                if s.contains('.') { Ty::Float } else { Ty::Int }
+                // 小数点あり → Float として確定
+                // 小数点なし → 新鮮な型変数を生成し、コンテキストで Int/Float に解決
+                // これにより `Vec2 { x = 0 y = 0 }` のように Float フィールドに
+                // 整数リテラルを渡せる
+                if s.contains('.') {
+                    Ty::Float
+                } else {
+                    // Numeric 変数: Int か Float かをコンテキストで決定
+                    // 既定では Int だが単一化で Float に解決される
+                    self.table.new_var()
+                }
             }
             Literal::Bool(_) => Ty::Bool,
         }
@@ -731,21 +739,34 @@ impl TypeChecker {
                     "Never"  => return Ty::Never,
                     _ => {}
                 }
-                let args: Vec<Ty> = n.args.iter()
+                let explicit_args: Vec<Ty> = n.args.iter()
                     .map(|a| self.ast_type_to_ty(a, type_params))
                     .collect();
 
-                // 型引数の数チェック
-                if let Some(info) = self.env.lookup_type(&n.name).cloned() {
+                // 型引数の処理:
+                //   - 明示的に引数あり → 数チェック
+                //   - 引数なし + ジェネリック型定義あり → 新鮮な型変数を自動補完
+                let args = if let Some(info) = self.env.lookup_type(&n.name).cloned() {
                     let expected = info.type_params().len();
-                    if !args.is_empty() && args.len() != expected {
-                        self.emit(n.span, DiagKind::TypeArgCount {
-                            name: n.name.clone(),
-                            expected,
-                            found: args.len(),
-                        });
+                    if !explicit_args.is_empty() {
+                        // 明示的引数の数チェック
+                        if explicit_args.len() != expected {
+                            self.emit(n.span, DiagKind::TypeArgCount {
+                                name: n.name.clone(),
+                                expected,
+                                found: explicit_args.len(),
+                            });
+                        }
+                        explicit_args
+                    } else if expected > 0 {
+                        // 引数省略 → 新鮮な型変数で補完 (HM の型引数推論)
+                        (0..expected).map(|_| self.table.new_var()).collect()
+                    } else {
+                        explicit_args
                     }
-                }
+                } else {
+                    explicit_args
+                };
                 Ty::Named { name: n.name.clone(), args }
             }
             TypeLiteral::Struct(s) => {

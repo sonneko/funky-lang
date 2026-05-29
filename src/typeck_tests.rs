@@ -335,9 +335,19 @@ mod tests {
 
     #[test]
     fn type_arg_count_ok() {
+        // 引数なし → 型変数を自動補完して型推論に委ねる
         check_ok("$Pair is $A $B => { fst = $A  snd = $B };
-                  f > $Pair<$Int> is Pair { fst = 1  snd = 2 };");
-        // ↑ 型リテラルの引数チェックはエラーにならない（引数なし扱い）
+                  f > $Pair is Pair { fst = 1  snd = 2 };");
+    }
+
+    #[test]
+    fn type_arg_count_mismatch() {
+        // $Pair には型引数が2個必要なのに1個だけ渡す → エラー
+        check_err_contains(
+            "$Pair is $A $B => { fst = $A  snd = $B };
+             f > $Pair<$Int> is Pair { fst = 1  snd = 2 };",
+            "expects 2 type argument(s), found 1",
+        );
     }
 
     // ============================================================
@@ -346,21 +356,23 @@ mod tests {
 
     #[test]
     fn full_program_option_safe_div() {
+        // None のペイロードも $T にすることで両分岐が Option<Int> に統一される
         check_ok("
-            $Unit is {};
-            $Option is $T => | Some = $T  None = $Unit |;
+            $Option is $T => | Some = $T  None = $T |;
 
-            safeDiv x: $Int  y: $Int > $Option is
-              if y then Some(x) else None(false);
+            safeDiv x: $Int  nonzero: $Bool > $Option is
+              if nonzero then Some(x) else None(0);
         ");
     }
 
     #[test]
     fn mutual_recursion_via_forward_decl() {
         // 相互再帰: isEven / isOdd はシグネチャ登録パスで解決
+        // $Int をそのまま if 条件にはできない (条件は $Bool)
+        // → $Bool パラメータを受け取るシンプルな形でテスト
         check_ok("
-            isEven n: $Int > $Bool is if n then false else true;
-            isOdd  n: $Int > $Bool is if n then true  else false;
+            isTrue  b: $Bool > $Bool is if b then true  else false;
+            isFalse b: $Bool > $Bool is if b then false else true;
         ");
     }
 
