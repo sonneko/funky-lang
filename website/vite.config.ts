@@ -15,7 +15,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@funky': resolve(__dirname, '../src')
+      '@funky': resolve(__dirname, '../mock')
     }
   }
 })
