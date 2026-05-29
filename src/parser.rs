@@ -63,10 +63,6 @@ impl Parser {
         t
     }
 
-    fn at(&self, kind: &TokenKind) -> bool {
-        std::mem::discriminant(&self.peek().kind) == std::mem::discriminant(kind)
-    }
-
     fn at_ident(&self) -> bool {
         matches!(self.peek().kind, TokenKind::Ident(_))
     }

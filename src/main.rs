@@ -3,7 +3,7 @@ use std::path::PathBuf;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     if args.len() < 2 {
-        eprintln!("usage: lang <file.funky>");
+        eprintln!("usage: funkylang <file.funky>");
         std::process::exit(1);
     }
 
@@ -16,18 +16,18 @@ fn main() {
         }
     };
 
-    match lang::parse(&src) {
+    match funkylang::parse(&src) {
         Ok(program) => {
             println!("parsed {} top-level items:", program.items.len());
             for item in &program.items {
                 match item {
-                    lang::ast::TopLevel::Using(u)    =>
+                    funkylang::ast::TopLevel::Using(u)    =>
                         println!("  using ... from {:?}", u.from),
-                    lang::ast::TopLevel::Function(f) =>
+                    funkylang::ast::TopLevel::Function(f) =>
                         println!("  fn  {}", f.name),
-                    lang::ast::TopLevel::TypeDef(t)  =>
+                    funkylang::ast::TopLevel::TypeDef(t)  =>
                         println!("  type ${}", t.name),
-                    lang::ast::TopLevel::Protocol(p) =>
+                    funkylang::ast::TopLevel::Protocol(p) =>
                         println!("  protocol ^{}", p.name),
                 }
             }
