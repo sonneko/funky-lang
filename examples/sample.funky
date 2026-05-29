@@ -1,0 +1,43 @@
+/* 標準ライブラリ相当のインポート */
+using console from "std:io";
+
+/* 基本型 */
+$Unit is {};
+$Option is $T => | Some = $T  None = $Unit |;
+$Result is $T $E => | Ok = $T  Err = $E |;
+$Vec2 is { x = $Float  y = $Float };
+
+/* プロトコル定義 */
+^Show is { show = $T > $String };
+^Eq   is { eq   = $T > $T > $Bool };
+
+/* 外部関数 */
+log msg: $String > $Unit is # consoleLog;
+
+/* 定数 */
+origin > $Vec2 is Vec2 { x = 0  y = 0 };
+
+/* 2つのベクトルを足す */
+addVec a: $Vec2  b: $Vec2 > $Vec2 is
+  Vec2 { x = a.x  y = b.y };
+
+/* ゼロ除算を安全に扱う */
+safeDiv x: $Int  y: $Int > $Result is
+  if y then Ok(x) else Err("division by zero");
+
+/* 値をクランプ */
+clamp x: $Int  lo: $Int  hi: $Int > $Int is
+  if x then
+    if x then lo else x
+  else hi;
+
+/* do-where ブロック */
+compute > $Int is
+  do {
+    log msg;
+    break result;
+    0
+  } where {
+    msg    = "computing"
+    result : $Int = 42
+  };
