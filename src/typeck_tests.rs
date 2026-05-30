@@ -248,10 +248,24 @@ mod tests {
 
     #[test]
     fn enum_literal_wrong_payload() {
+        // f の戻り値を $Int として受け取ろうとするとエラー
+        // Some("hello") → Option<String> だが useInt は Int を期待
         check_err_contains(
-            r#"$Option is $T => | Some = $T  None = $Unit |;
+            r#"$Option is $T => | Some = $T  None = $T |;
+               useInt x: $Int > $Int is x;
+               main > $Int is useInt Some("hello");"#,
+            "type mismatch",
+        );
+    }
+
+    #[test]
+    fn enum_literal_payload_type_propagates() {
+        // f の戻り値 Option<String> を、Int を期待する関数に渡す → 型不一致
+        check_err_contains(
+            r#"$Option is $T => | Some = $T  None = $T |;
+               useInt x: $Int > $Int is x;
                f > $Option is Some("hello");
-               g > $Int is add (f) 1;"#,
+               main > $Int is useInt (f);"#,
             "type mismatch",
         );
     }

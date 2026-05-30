@@ -212,7 +212,7 @@ pub fn free_vars_in_ty(ty: &Ty) -> Vec<TyVarId> {
 
 fn collect_free(ty: &Ty, out: &mut Vec<TyVarId>) {
     match ty {
-        Ty::Var(id) => {
+        Ty::Var(id) | Ty::NumVar(id) => {
             if !out.contains(id) { out.push(*id); }
         }
         Ty::Fn(a, b) => { collect_free(a, out); collect_free(b, out); }

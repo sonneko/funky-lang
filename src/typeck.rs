@@ -81,8 +81,6 @@ pub struct TypeChecker {
 
     /// 式ノードのスパン → 推論された型 (外部から参照可能)
     pub node_types: HashMap<u64, Ty>,
-    /// スパンをキーにする簡易ID (start * 100000 + end)
-    span_counter: u64,
 }
 
 impl TypeChecker {
@@ -92,7 +90,6 @@ impl TypeChecker {
             table: UnifyTable::new(),
             diags: Vec::new(),
             node_types: HashMap::new(),
-            span_counter: 0,
         };
         checker.register_builtins();
         checker
@@ -360,16 +357,15 @@ impl TypeChecker {
         match lit {
             Literal::String(_) => Ty::String,
             Literal::Number(s) => {
-                // 小数点あり → Float として確定
-                // 小数点なし → 新鮮な型変数を生成し、コンテキストで Int/Float に解決
-                // これにより `Vec2 { x = 0 y = 0 }` のように Float フィールドに
-                // 整数リテラルを渡せる
                 if s.contains('.') {
+                    // 小数点あり → Float として確定
                     Ty::Float
                 } else {
-                    // Numeric 変数: Int か Float かをコンテキストで決定
-                    // 既定では Int だが単一化で Float に解決される
-                    self.table.new_var()
+                    // 整数リテラル → NumVar を生成
+                    // NumVar は Int/Float のみに解決可能で Bool とは単一化できない
+                    // これにより `if 42 then ...` はエラーになり、
+                    // `Vec2 { x = 0 }` の Float フィールドへの代入は OK になる
+                    self.table.new_num_var()
                 }
             }
             Literal::Bool(_) => Ty::Bool,

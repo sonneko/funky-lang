@@ -50,6 +50,10 @@ pub enum Ty {
     /// HM推論中の未解決変数 (enaテーブルのキー)
     Var(TyVarId),
 
+    /// 数値専用の型変数: Int または Float のみに解決可能
+    /// `42` のような整数リテラルに割り当て、Bool と単一化されるとエラーになる
+    NumVar(TyVarId),
+
     // --- エラー回復用 ---
     Error,
 }
@@ -68,7 +72,7 @@ impl Ty {
     /// 型変数を含むか (occurs check 用)
     pub fn contains_var(&self, id: TyVarId) -> bool {
         match self {
-            Ty::Var(v) => *v == id,
+            Ty::Var(v) | Ty::NumVar(v) => *v == id,
             Ty::Fn(a, b) => a.contains_var(id) || b.contains_var(id),
             Ty::Named { args, .. } => args.iter().any(|a| a.contains_var(id)),
             _ => false,
@@ -78,7 +82,7 @@ impl Ty {
     /// 型変数を型で置換 (shallow)
     pub fn substitute(&self, id: TyVarId, with: &Ty) -> Ty {
         match self {
-            Ty::Var(v) if *v == id => with.clone(),
+            Ty::Var(v) | Ty::NumVar(v) if *v == id => with.clone(),
             Ty::Fn(a, b) => Ty::fun(
                 a.substitute(id, with),
                 b.substitute(id, with),
@@ -112,7 +116,8 @@ impl fmt::Display for Ty {
             Ty::Unit   => write!(f, "Unit"),
             Ty::Never  => write!(f, "Never"),
             Ty::Error  => write!(f, "<error>"),
-            Ty::Var(v) => write!(f, "?t{}", v.0),
+            Ty::Var(v)    => write!(f, "?t{}", v.0),
+            Ty::NumVar(v) => write!(f, "?n{}", v.0),
             Ty::Fn(a, b) => {
                 if matches!(a.as_ref(), Ty::Fn(..)) {
                     write!(f, "({}) -> {}", a, b)
@@ -167,6 +172,12 @@ impl UnifyTable {
         Ty::Var(key)
     }
 
+    /// 新鮮な数値型変数を生成 (Int / Float のみに解決可能)
+    pub fn new_num_var(&mut self) -> Ty {
+        let key = self.table.new_key(None);
+        Ty::NumVar(key)
+    }
+
     /// 型変数の現在の値を取得（再帰的に解決）
     pub fn resolve(&mut self, ty: Ty) -> Ty {
         match ty {
@@ -174,6 +185,13 @@ impl UnifyTable {
                 match self.table.probe_value(id) {
                     Some(resolved) => self.resolve(resolved),
                     None => Ty::Var(id),
+                }
+            }
+            // NumVar も同じテーブルで管理。解決済みなら具体型、未解決なら NumVar を維持
+            Ty::NumVar(id) => {
+                match self.table.probe_value(id) {
+                    Some(resolved) => self.resolve(resolved),
+                    None => Ty::NumVar(id),
                 }
             }
             Ty::Fn(a, b) => {
@@ -203,10 +221,32 @@ impl UnifyTable {
             (Ty::Never,  _) | (_, Ty::Never) => Ok(()),  // bottom type
             (Ty::Error,  _) | (_, Ty::Error)  => Ok(()),  // エラー回復: 伝播させない
 
-            // 両方同じ変数 → OK
-            (Ty::Var(a), Ty::Var(b)) if a == b => Ok(()),
+            // 両方同じ変数 (Var/NumVar) → OK
+            (Ty::Var(a),    Ty::Var(b))    if a == b => Ok(()),
+            (Ty::NumVar(a), Ty::NumVar(b)) if a == b => Ok(()),
 
-            // 変数 ← 具体型
+            // NumVar + NumVar (異なる変数) → 一方を他方に束縛
+            (Ty::NumVar(a), Ty::NumVar(b)) => {
+                self.table.unify_var_value(a, Some(Ty::NumVar(b)))
+                    .map_err(|(got, expected)| UnifyError::Mismatch(got, expected))
+            }
+
+            // NumVar ← Int/Float: 数値型なので OK
+            (Ty::NumVar(id), Ty::Int)   | (Ty::Int,   Ty::NumVar(id)) => {
+                self.table.unify_var_value(id, Some(Ty::Int))
+                    .map_err(|(got, expected)| UnifyError::Mismatch(got, expected))
+            }
+            (Ty::NumVar(id), Ty::Float) | (Ty::Float, Ty::NumVar(id)) => {
+                self.table.unify_var_value(id, Some(Ty::Float))
+                    .map_err(|(got, expected)| UnifyError::Mismatch(got, expected))
+            }
+
+            // NumVar ← 非数値型: エラー (Bool 等を数値リテラルとして使おうとした)
+            (Ty::NumVar(id), other) | (other, Ty::NumVar(id)) => {
+                Err(UnifyError::Mismatch(Ty::NumVar(id), other))
+            }
+
+            // Var ← 具体型
             (Ty::Var(id), other) | (other, Ty::Var(id)) => {
                 // occurs check
                 if other.contains_var(id) {
