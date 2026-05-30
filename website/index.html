@@ -21,8 +21,14 @@
         </section>
 
         <section id="output-container">
-          <h2>Output</h2>
-          <pre id="output"></pre>
+          <div class="tabs">
+            <button class="tab-btn active" data-tab="output">Result</button>
+            <button class="tab-btn" data-tab="generated-code">TypeScript</button>
+          </div>
+          <div class="tab-content">
+            <pre id="output"></pre>
+            <pre id="generated-code" class="hidden"></pre>
+          </div>
         </section>
 
         <section id="description">

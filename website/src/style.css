@@ -84,8 +84,47 @@ section {
 #output-container {
   grid-column: 2 / 3;
   background-color: #f5f5f5;
-  padding: 1rem;
+  padding: 0;
   border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: #666;
+  padding: 0.75rem 1.5rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.tab-btn:hover {
+  background-color: #eee;
+  color: #000;
+}
+
+.tab-btn.active {
+  color: #000;
+  border-bottom-color: #000;
+}
+
+.tab-content {
+  padding: 1rem;
+  flex: 1;
+  overflow: auto;
+}
+
+.hidden {
+  display: none;
 }
 
 #description {
