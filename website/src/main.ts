@@ -51,16 +51,56 @@ const editor = new EditorView({
 })
 
 const outputElement = document.querySelector('#output')!
+const generatedCodeElement = document.querySelector('#generated-code')!
 const runBtn = document.querySelector('#run-btn')!
+const tabBtns = document.querySelectorAll('.tab-btn')
+
+// Tab switching logic
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const targetId = btn.getAttribute('data-tab')!
+
+    // Update active button
+    tabBtns.forEach(b => b.classList.remove('active'))
+    btn.classList.add('active')
+
+    // Update visible content
+    outputElement.classList.add('hidden')
+    generatedCodeElement.classList.add('hidden')
+    document.querySelector(`#${targetId}`)!.classList.remove('hidden')
+  })
+})
+
+function switchToTab(tabId: 'output' | 'generated-code') {
+  tabBtns.forEach(btn => {
+    if (btn.getAttribute('data-tab') === tabId) {
+      btn.classList.add('active')
+    } else {
+      btn.classList.remove('active')
+    }
+  })
+
+  if (tabId === 'output') {
+    outputElement.classList.remove('hidden')
+    generatedCodeElement.classList.add('hidden')
+  } else {
+    outputElement.classList.add('hidden')
+    generatedCodeElement.classList.remove('hidden')
+  }
+}
 
 runBtn.addEventListener('click', async () => {
   const code = editor.state.doc.toString()
   outputElement.textContent = 'Running...'
+  generatedCodeElement.textContent = ''
+
+  switchToTab('output')
 
   try {
     // 1. Funky -> TypeScript
     const ast = parse(code)
     const tsCode = transpile(ast)
+    generatedCodeElement.textContent = tsCode
 
     // 2. TypeScript -> JavaScript (with type checking)
     const compilation = compileTypeScript(tsCode)
