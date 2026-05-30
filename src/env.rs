@@ -155,37 +155,35 @@ impl Env {
     }
 
     // ---- 型スキームのインスタンス化 ----
-    /// ∀α β. T  →  ?a ?b で置き換えた T を返す
+    /// ∀T U. T → U  →  ?t0 → ?t1 に置き換えた型を返す
+    /// quantified は型パラメータ名の文字列リスト。
+    /// 型本体中の Named("T", []) を新鮮な Var に置換する。
 
     pub fn instantiate(&self, scheme: &TypeScheme, table: &mut UnifyTable) -> Ty {
         if scheme.quantified.is_empty() {
             return scheme.ty.clone();
         }
         let mut ty = scheme.ty.clone();
-        for &qid in &scheme.quantified {
+        for param_name in &scheme.quantified {
             let fresh = table.new_var();
-            if let Ty::Var(fresh_id) = fresh {
-                ty = ty.substitute(qid, &Ty::Var(fresh_id));
-            }
+            ty = substitute_named_param(&ty, param_name, &fresh);
         }
         ty
     }
 
     // ---- 汎化 (let多相) ----
     /// 環境中に現れない自由型変数を全称量化する
+    /// 現在は register_fn_sig の Named-param 方式を使うため未使用だが将来のために残す
 
     pub fn generalize(&self, ty: &Ty, table: &mut UnifyTable) -> TypeScheme {
         let resolved = table.resolve(ty.clone());
-        let env_vars = self.free_type_vars(table);
-        let free = free_vars_in_ty(&resolved);
-        let quantified: Vec<TyVarId> = free
-            .into_iter()
-            .filter(|v| !env_vars.contains(v))
-            .collect();
-        TypeScheme { quantified, ty: resolved }
+        // 自由型変数は String 名を持たないため、単純にモノ型として返す
+        // （将来: 型変数に名前を付けて量化する実装に拡張可能）
+        TypeScheme::mono(resolved)
     }
 
-    /// 環境全体の自由型変数を収集
+    /// 環境全体の自由型変数を収集 (現在は generalize 簡略化につき未使用)
+    #[allow(dead_code)]
     fn free_type_vars(&self, table: &mut UnifyTable) -> Vec<TyVarId> {
         let mut result = Vec::new();
         for frame in &self.frames {
@@ -193,13 +191,30 @@ impl Env {
                 let resolved = table.resolve(scheme.ty.clone());
                 let fv = free_vars_in_ty(&resolved);
                 for v in fv {
-                    if !scheme.quantified.contains(&v) && !result.contains(&v) {
+                    if !result.contains(&v) {
                         result.push(v);
                     }
                 }
             }
         }
         result
+    }
+}
+
+/// Named("param_name", []) を concrete で置換するヘルパー
+/// register_fn_sig が型パラメータを Named として保存するための仕組み
+pub fn substitute_named_param(ty: &Ty, param: &str, concrete: &Ty) -> Ty {
+    match ty {
+        Ty::Named { name, args } if name == param && args.is_empty() => concrete.clone(),
+        Ty::Named { name, args } => Ty::Named {
+            name: name.clone(),
+            args: args.iter().map(|a| substitute_named_param(a, param, concrete)).collect(),
+        },
+        Ty::Fn(a, b) => Ty::fun(
+            substitute_named_param(a, param, concrete),
+            substitute_named_param(b, param, concrete),
+        ),
+        other => other.clone(),
     }
 }
 

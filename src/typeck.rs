@@ -4,7 +4,7 @@
 use std::collections::HashMap;
 
 use crate::ast::*;
-use crate::env::{Env, ProtocolInfo, TypeInfo};
+use crate::env::{Env, ProtocolInfo, TypeInfo, substitute_named_param};
 use crate::ty::{Ty, TyVarId, TypeScheme, UnifyError, UnifyTable};
 
 // ============================================================
@@ -81,6 +81,20 @@ pub struct TypeChecker {
 
     /// 式ノードのスパン → 推論された型 (外部から参照可能)
     pub node_types: HashMap<u64, Ty>,
+
+    /// 未解決型変数に対するフィールドアクセス制約
+    /// (var_id, field_name) → 結果の型変数
+    /// 型変数が具体的な struct 型に解決されたとき単一化に使う
+    field_constraints: Vec<FieldConstraint>,
+}
+
+struct FieldConstraint {
+    /// アクセス対象の型変数
+    receiver_var: TyVarId,
+    field: String,
+    /// フィールドアクセスの結果として返した型変数
+    result_var: TyVarId,
+    span: Span,
 }
 
 impl TypeChecker {
@@ -90,6 +104,7 @@ impl TypeChecker {
             table: UnifyTable::new(),
             diags: Vec::new(),
             node_types: HashMap::new(),
+            field_constraints: Vec::new(),
         };
         checker.register_builtins();
         checker
@@ -248,12 +263,14 @@ impl TypeChecker {
     // ---- Pass 2: 関数シグネチャ登録 ----
 
     fn register_fn_sig(&mut self, f: &FunctionDecl) {
-        // 型パラメータ名 → 新鮮な型変数 の対応表を作る
+        // プロトコル制約で導入された型パラメータ名を収集
         let type_param_names: Vec<String> = f.protocol_constraints.iter()
             .map(|c| c.name.clone())
             .collect();
 
-        // 型パラメータを Ty::Named(name, []) として扱う（推論変数として後で単一化）
+        // 型パラメータは Named("T",[]) のまま型本体に保持する。
+        // ast_type_to_ty はこれらを Ty::Named{name:"T", args:[]} として返す。
+        // インスタンス化時（lookup → instantiate）に新鮮な Var へ置換される。
         let param_tys: Vec<Ty> = f.params.iter()
             .map(|p| self.ast_type_to_ty(&p.ty, &type_param_names))
             .collect();
@@ -261,12 +278,8 @@ impl TypeChecker {
 
         let fn_ty = Ty::curried(param_tys.iter().cloned(), ret_ty);
 
-        // 型パラメータに対応する型変数を量化
-        // （シグネチャ登録時は単純に汎化: 実際の制約チェックは本体で）
-        let scheme = TypeScheme {
-            quantified: vec![], // 外部呼び出し時はインスタンス化は不要（モノ型として扱う）
-            ty: fn_ty,
-        };
+        // 多相スキーム: 呼び出しごとに Named("T",[]) を新鮮な Var で置換する
+        let scheme = TypeScheme::poly(type_param_names, fn_ty);
         self.env.register_global(f.name.clone(), scheme);
     }
 
@@ -307,7 +320,44 @@ impl TypeChecker {
             self.check_protocol_constraint(&c.name, &c.body, f.span);
         }
 
+        // フィールドアクセス制約を解決
+        // 型変数が具体的な Named 型に解決されていれば、
+        // 記録済みのフィールドアクセスを今度は Named 型で再解決して単一化する
+        self.resolve_field_constraints();
+
         self.env.pop_scope();
+    }
+
+    fn resolve_field_constraints(&mut self) {
+        // drain して処理: 解決できなかったものは残す
+        let constraints = std::mem::take(&mut self.field_constraints);
+        let mut deferred = Vec::new();
+
+        for fc in constraints {
+            let receiver_ty = self.table.resolve(Ty::Var(fc.receiver_var));
+            match receiver_ty {
+                Ty::Named { .. } => {
+                    // 具体的な型に解決された → フィールドアクセスを再解決
+                    let field_ty = self.access_field(receiver_ty, &fc.field, fc.span);
+                    let result_ty = Ty::Var(fc.result_var);
+                    let field_r = self.table.resolve(field_ty);
+                    let result_r = self.table.resolve(result_ty);
+                    if !field_r.is_error() && !result_r.is_error() {
+                        self.unify(fc.span, result_r, field_r);
+                    }
+                }
+                Ty::Var(_) => {
+                    // まだ未解決 → 後回し (このパスでは未解決のまま)
+                    deferred.push(fc);
+                }
+                _ => {
+                    // 構造体でない型にフィールドアクセス → すでに infer 側でエラー済み
+                }
+            }
+        }
+
+        // 未解決のまま残った制約を戻す
+        self.field_constraints = deferred;
     }
 
     /// `$T: ^Show` の制約が意味的に正しいかチェック
@@ -445,9 +495,21 @@ impl TypeChecker {
                     }
                 }
             }
-            Ty::Var(_) => {
-                // 未解決変数: フィールド型も変数のまま
-                self.table.new_var()
+            Ty::Var(vid) => {
+                // 未解決変数に対するフィールドアクセス:
+                // 結果として新鮮な型変数を返し、制約として記録する。
+                // 後で型変数が具体的な Named 型に解決されたとき
+                // resolve_field_constraints() で単一化される。
+                let result = self.table.new_var();
+                let result_id = if let Ty::Var(id) = result { id }
+                                else { unreachable!() };
+                self.field_constraints.push(FieldConstraint {
+                    receiver_var: vid,
+                    field: field.to_string(),
+                    result_var: result_id,
+                    span,
+                });
+                Ty::Var(result_id)
             }
             Ty::Error => Ty::Error,
             other => {
@@ -808,7 +870,7 @@ impl TypeChecker {
         args: &[Ty],
     ) -> Ty {
         for (param, arg) in params.iter().zip(args.iter()) {
-            ty = substitute_named(&ty, param, arg);
+            ty = substitute_named_param(&ty, param, arg);
         }
         ty
     }
@@ -826,25 +888,6 @@ impl TypeChecker {
 
 impl Default for TypeChecker {
     fn default() -> Self { Self::new() }
-}
-
-// ============================================================
-// 補助: Named型パラメータを Ty で置換
-// ============================================================
-
-fn substitute_named(ty: &Ty, param: &str, arg: &Ty) -> Ty {
-    match ty {
-        Ty::Named { name, args } if name == param && args.is_empty() => arg.clone(),
-        Ty::Named { name, args } => Ty::Named {
-            name: name.clone(),
-            args: args.iter().map(|a| substitute_named(a, param, arg)).collect(),
-        },
-        Ty::Fn(a, b) => Ty::fun(
-            substitute_named(a, param, arg),
-            substitute_named(b, param, arg),
-        ),
-        other => other.clone(),
-    }
 }
 
 // テストモジュールをインクルード

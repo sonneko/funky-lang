@@ -138,17 +138,22 @@ impl fmt::Display for Ty {
 // 型スキーム (∀α. T)  — let多相用
 // ============================================================
 
-/// HM の型スキーム: 量化された型変数 + 型本体
+/// HM の型スキーム: 全称量化された型パラメータ名 + 型本体
+/// 型本体中の Named("T", []) が量化変数を表す。
+/// インスタンス化時に各 Named("T",[]) を新鮮な Var に置き換える。
 #[derive(Clone, Debug)]
 pub struct TypeScheme {
-    /// 全称量化された変数ID列
-    pub quantified: Vec<TyVarId>,
+    /// 全称量化された型パラメータ名 (例: ["T", "U"])
+    pub quantified: Vec<String>,
     pub ty: Ty,
 }
 
 impl TypeScheme {
     pub fn mono(ty: Ty) -> Self {
         TypeScheme { quantified: vec![], ty }
+    }
+    pub fn poly(params: Vec<String>, ty: Ty) -> Self {
+        TypeScheme { quantified: params, ty }
     }
 }
 
@@ -244,6 +249,12 @@ impl UnifyTable {
             // NumVar ← 非数値型: エラー (Bool 等を数値リテラルとして使おうとした)
             (Ty::NumVar(id), other) | (other, Ty::NumVar(id)) => {
                 Err(UnifyError::Mismatch(Ty::NumVar(id), other))
+            }
+
+            // Var + NumVar → Var を NumVar に束縛（数値制約を引き継ぐ）
+            (Ty::Var(vid), Ty::NumVar(nid)) | (Ty::NumVar(nid), Ty::Var(vid)) => {
+                self.table.unify_var_value(vid, Some(Ty::NumVar(nid)))
+                    .map_err(|(got, expected)| UnifyError::Mismatch(got, expected))
             }
 
             // Var ← 具体型
