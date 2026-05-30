@@ -504,7 +504,7 @@ impl TypeChecker {
                 let result_id = if let Ty::Var(id) = result { id }
                                 else { unreachable!() };
                 self.field_constraints.push(FieldConstraint {
-                    receiver_var: vid,
+                    receiver_var: *vid,
                     field: field.to_string(),
                     result_var: result_id,
                     span,
