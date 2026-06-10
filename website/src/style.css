@@ -208,7 +208,7 @@ code {
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background-color: #24292e; /* GitHub dark gray */
+  background-color: #eee;
   color: #ffffff;
   text-decoration: none;
   font-family: 'Roboto', sans-serif;
