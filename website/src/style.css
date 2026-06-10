@@ -201,3 +201,30 @@ code {
     grid-column: 1 / 2;
   }
 }
+
+
+.github-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #24292e; /* GitHub dark gray */
+  color: #ffffff;
+  text-decoration: none;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: background-color 0.2s ease, transform 0.1s active;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+
+.github-btn:hover {
+  background-color: #2f363d;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.github-btn:active {
+  transform: translateY(1px);
+}
