@@ -161,7 +161,7 @@ runBtn.addEventListener('click', async () => {
     }
 
   } catch (e: any) {
-    outputElement.textContent = 'Error:\n' + e.message
+    outputElement.textContent = 'Error:\n' + e.message + "\n@" + e.pos
   }
 })
 
