@@ -102,13 +102,13 @@ arrayConcat a: $Array<$Any> b: $Array<$Any> > $Array<$Any> is #"a.concat(b)";
 arrayReverse arr: $Array<$Any> > $Array<$Any> is #"[...arr].reverse()";
 arrayIncludes item: $Any arr: $Array<$Any> > $Bool is #"arr.includes(item)";
 
-newMap > $Map<$Any, $Any> is #"new Map()";
-mapSet key: $Any val: $Any m: $Map<$Any, $Any> > $Unit is #"void m.set(key, val)";
-mapGet key: $Any m: $Map<$Any, $Any> > $Any is #"m.get(key)";
-mapHas key: $Any m: $Map<$Any, $Any> > $Bool is #"m.has(key)";
-mapDelete key: $Any m: $Map<$Any, $Any> > $Bool is #"m.delete(key)";
-mapClear m: $Map<$Any, $Any> > $Unit is #"void m.clear()";
-mapSize m: $Map<$Any, $Any> > $Int is #"m.size";
+newMap > $Map<$Any $Any> is #"new Map()";
+mapSet key: $Any val: $Any m: $Map<$Any $Any> > $Unit is #"void m.set(key, val)";
+mapGet key: $Any m: $Map<$Any $Any> > $Any is #"m.get(key)";
+mapHas key: $Any m: $Map<$Any $Any> > $Bool is #"m.has(key)";
+mapDelete key: $Any m: $Map<$Any $Any> > $Bool is #"m.delete(key)";
+mapClear m: $Map<$Any $Any> > $Unit is #"void m.clear()";
+mapSize m: $Map<$Any $Any> > $Int is #"m.size";
 
 newSet > $Set<$Any> is #"new Set()";
 setAdd item: $Any s: $Set<$Any> > $Unit is #"void s.add(item)";
