@@ -70,8 +70,7 @@ factorial n: $Int > $Int is
 
 main > $Unit is
   do {
-    print (concat "Factorial of 5 is: " (intToString result));
-    break 0;
+    print (concat "Factorial of 5 is: " (intToString result))
   } where {
     result = factorial 5;
   };
