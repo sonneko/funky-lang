@@ -260,15 +260,14 @@ export class Transpiler {
   private emitFunction(w: CodeWriter, node: FunctionDecl) {
     const { name, protocols, params, returnType, body } = node;
 
+    let bodyStr = "";
+
     // Builtin: declare the external function
     if (body.kind === "Builtin") {
-      const sig = this.buildFunctionSignature(protocols, params, returnType);
-      w.write(`declare const ${body.name}: ${sig};`);
-      w.write(`export const ${name} = ${body.name};`);
-      return;
+      bodyStr = body.name;
+    } else {
+      bodyStr = this.emitExpression(body);
     }
-
-    const bodyStr = this.emitExpression(body);
 
     if (params.length === 0) {
       // Nullary: constant value
@@ -301,19 +300,6 @@ export class Transpiler {
     );
 
     w.write(`export const ${name} = ${generics}${arrows.join(" ")};`);
-  }
-
-  // Build a function type string (used for builtins)
-  private buildFunctionSignature(
-    protocols: FunctionDecl["protocols"],
-    params: FunctionDecl["params"],
-    returnType: TypeLiteral,
-  ): string {
-    if (params.length === 0) return this.emitTypeLiteral(returnType);
-    const retTs = this.emitTypeLiteral(returnType);
-    // Emit as curried function type
-    const parts = params.map(p => `(${p.name}: ${this.emitTypeLiteral(p.type)}) =>`);
-    return `${parts.join(" ")} ${retTs}`;
   }
 
   // ---- Type literal emitter ----

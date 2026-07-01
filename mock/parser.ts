@@ -445,7 +445,7 @@ export class Parser {
     let body: Expression | { kind: "Builtin"; name: string };
     if (this.at("HASH")) {
       this.advance();
-      body = { kind: "Builtin", name: this.expect("IDENT").value };
+      body = { kind: "Builtin", name: this.expect("STRING").value };
     } else {
       body = this.parseExpression();
     }
