@@ -731,6 +731,10 @@ export class Parser {
 
     if (!final) throw new ParseError("Block must have a final expression", this.peek().pos);
     this.expect("RBRACE");
+
+    if (!this.at("WHERE")) {
+      return { kind: "BlockExpression", stmts, final, bindings: [] };
+    }
     this.expect("WHERE");
     this.expect("LBRACE");
 

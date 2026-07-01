@@ -130,16 +130,14 @@ fizzBuzzOf n: $Int > $String is
     else (intToString n);
 
 fizzBuzzLoop current: $Int max: $Int > $Void is
-    if isBigger current max then 0
+    if gt current max then 0
     else do {
-        print result;
-        fizzBuzzLoop next max
-    } where {
-      next = add current 1
-      result = fizzBuzzOf current
+        print (fizzBuzzOf current);
+        fizzBuzzLoop (add current 1) max
     };
 
 main > $Void is fizzBuzzLoop 1 100;
+
 `
 
 // Minimal setup without syntax highlighting
