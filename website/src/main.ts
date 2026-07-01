@@ -39,7 +39,7 @@ concat x: $String y: $String > $String is #"x + y";
 length s: $String > $Int is #"s.length";
 substring start: $Int end: $Int s: $String > $String is #"s.substring(start, end)";
 contains search: $String s: $String > $Bool is #"s.includes(search)";
-replace from: $String to: $String s: $String > $String is #"s.replaceAll(from, to)";
+replace src: $String to: $String s: $String > $String is #"s.replaceAll(src, to)";
 split sep: $String s: $String > $Array<$String> is #"s.split(sep)";
 
 not b: $Bool > $Bool is #"!b";
@@ -281,7 +281,7 @@ runBtn.addEventListener('click', async () => {
     }
 
   } catch (e: any) {
-    outputElement.textContent = 'Error:\n' + e.message + "\n@" + e.pos
+    outputElement.textContent = 'Error:\n' + e.message + "\n@" + ( e.pos - prefix.length);
   }
 })
 
