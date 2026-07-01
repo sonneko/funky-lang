@@ -8,7 +8,7 @@ import { transpile } from '@funky/transpile'
 import * as ts from 'typescript'
 
 const prefix = `
-print msg: $String > $Unit is #"console.log(msg)";
+print msg: $String > $Unit is #"console_log(msg)";
 intToString n: $Int > $String is #"String(n)";
 floatToString n: $Float > $String is #"String(n)";
 boolToString b: $Bool > $String is #"String(b)";
@@ -62,7 +62,6 @@ arrayPush item: $Any arr: $Array<$Any> > $Unit is #"void arr.push(item)";
 arraySlice start: $Int end: $Int arr: $Array<$Any> > $Array<$Any> is #"arr.slice(start, end)";
 
 id x: $Any > $Any is #"x";
-typeof x: $Any > $String is #"typeof x";
 
 assertInt i: $Int > $Int is #"i";
 assertFloat f: $Float > $Float is #"f";
