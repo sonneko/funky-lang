@@ -769,7 +769,7 @@ export class Parser {
     }
 
     if (t.kind === "LPAREN") {
-      return this.parseParenExpression();
+      return { ...this.parseParenExpression(), parts: [] } as any;
     }
 
     if (t.kind === "IDENT") {
