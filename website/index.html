@@ -1,78 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Funky Playground</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&family=Roboto+Mono&display=swap" rel="stylesheet">
-  </head>
-  <body>
-    <div id="app">
-      <header>
-        <h1>Funky Playground</h1>
-        <button id="run-btn">Run</button>
-      </header>
 
-      <main>
-        <section id="editor-container">
-          <div id="editor"></div>
-        </section>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Funky Playground</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&family=Roboto+Mono&display=swap"
+    rel="stylesheet">
+</head>
 
-        <section id="output-container">
-          <div class="tabs">
-            <button class="tab-btn active" data-tab="output">Result</button>
-            <button class="tab-btn" data-tab="generated-code">TypeScript</button>
-          </div>
-          <div class="tab-content">
-            <pre id="output"></pre>
-            <pre id="generated-code" class="hidden"></pre>
-          </div>
-        </section>
+<body>
+  <div id="app">
+    <header>
+      <h1>Funky Playground</h1>
+      <button id="run-btn">Run</button>
+    </header>
 
-        <section id="description">
-          <a href="https://github.com/sonneko/funky-lang" class="github-btn" target="_blank" rel="noopener noreferrer">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
-              <path d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.404 1.1 0 1.999.135 2.807.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943"></path>
-            </svg>
-            <span>View on GitHub</span>
-          </a>
-          <h2>About Funky</h2>
-          <div class="content">
-            <p>Funky is a functional-first, expression-oriented, and statically typed language.</p>
-            <h3>Key Features</h3>
-            <ul>
-              <li><strong>Structural Typing:</strong> Support for structs and algebraic data types (enums).</li>
-              <li><strong>Protocol-based Polymorphism:</strong> Define and use protocols (traits/interfaces) with <code>^</code> prefix.</li>
-              <li><strong>Type Generics and Constraints:</strong> Clearly define what can be called.</li>
-              <li><strong>Curried Functions:</strong> Functions are curried by default.</li>
-              <li><strong>Do-Where Blocks:</strong> Sequencing expressions and defining local variable bindings.</li>
-              <li><strong>Type Prefixes:</strong> Types and generic parameters use <code>$</code> prefix.</li>
-            </ul>
-            <h3>About This Playground</h3>
-            <ul>
-              <li>Transpile Funky into TypeScript, and Run in your browser.</li>
-              <li>Now I'm currently developing practical system to run Funky. In the near future, you can see funky running on VM.</li>
-            </ul>
-            <h3>Syntax Examples</h3>
-            <pre><code>
-$Point is { x = $Int y = $Int };
+    <main>
+      <section id="editor-container">
+        <div id="editor"></div>
+      </section>
 
-add x: $Int y: $Int > $Int is
-  x + y;
+      <section id="output-container">
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="output">Result</button>
+          <button class="tab-btn" data-tab="generated-code">TypeScript</button>
+        </div>
+        <div class="tab-content">
+          <pre id="output"></pre>
+          <pre id="generated-code" class="hidden"></pre>
+        </div>
+      </section>
 
-$Option is $T => | Some = $T None = $Unit |;
+      <section id="description">
+        <a href="https://github.com/sonneko/funky-lang" class="github-btn" target="_blank" rel="noopener noreferrer">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
+            <path
+              d="M10.226 17.284c-2.965-.36-5.054-2.493-5.054-5.256 0-1.123.404-2.336 1.078-3.144-.292-.741-.247-2.314.09-2.965.898-.112 2.111.36 2.83 1.01.853-.269 1.752-.404 2.853-.404 1.1 0 1.999.135 2.807.382.696-.629 1.932-1.1 2.83-.988.315.606.36 2.179.067 2.942.72.854 1.101 2 1.101 3.167 0 2.763-2.089 4.852-5.098 5.234.763.494 1.28 1.572 1.28 2.807v2.336c0 .674.561 1.056 1.235.786 4.066-1.55 7.255-5.615 7.255-10.646C23.5 6.188 18.334 1 11.978 1 5.62 1 .5 6.188.5 12.545c0 4.986 3.167 9.12 7.435 10.669.606.225 1.19-.18 1.19-.786V20.63a2.9 2.9 0 0 1-1.078.224c-1.483 0-2.359-.808-2.987-2.313-.247-.607-.517-.966-1.034-1.033-.27-.023-.359-.135-.359-.27 0-.27.45-.471.898-.471.652 0 1.213.404 1.797 1.235.45.651.921.943 1.483.943.561 0 .92-.202 1.437-.719.382-.381.674-.718.944-.943">
+            </path>
+          </svg>
+          <span>View on GitHub</span>
+        </a>
+        <h2>About Funky</h2>
+        <div class="content">
+          <p>Funky is a functional-first, expression-oriented, and statically typed language.</p>
+          <h3>Key Features</h3>
+          <ul>
+            <li><strong>Structural Typing:</strong> Support for structs and algebraic data types (enums).</li>
+            <li><strong>Protocol-based Polymorphism:</strong> Define and use protocols (traits/interfaces) with
+              <code>^</code> prefix.</li>
+            <li><strong>Type Generics and Constraints:</strong> Clearly define what can be called.</li>
+            <li><strong>Curried Functions:</strong> Functions are curried by default.</li>
+            <li><strong>Do-Where Blocks:</strong> Sequencing expressions and defining local variable bindings.</li>
+            <li><strong>Type Prefixes:</strong> Types and generic parameters use <code>$</code> prefix.</li>
+          </ul>
+          <h3>About This Playground</h3>
+          <ul>
+            <li>Transpile Funky into TypeScript, and Run in your browser.</li>
+            <li>Now I'm currently developing practical system to run Funky. In the near future, you can see funky
+              running on VM.</li>
+          </ul>
+          <h3>Syntax Examples</h3>
+          <pre><code>
+factorial n: $Int > $Int is
+  if (lte n 1) then 1
+  else (mul n (factorial (sub n 1)));
 
 main > $Unit is
   do {
-    log "Hello, Funky!";
+    print (concat "Factorial of 5 is: " (intToString result));
+    break 0;
   } where {
-    log = #console_log
+    result = factorial 5;
   };
             </code></pre>
-            <h3>Grammar</h3>
-            <pre><code>
+          <h3>Grammar</h3>
+          <pre><code>
 &lt;program&gt; ::= &lt;top_level&gt;*
 &lt;top_level&gt; ::= &lt;using&gt; | &lt;function&gt; | &lt;type_definition&gt; | &lt;protocol_definition&gt;
 
@@ -81,7 +86,7 @@ main > $Unit is
 
 # function
 &lt;function&gt; ::= &lt;identifier&gt; &lt;protocol_def_list&gt;? &lt;param_def_list&gt; &quot;is&quot;
-&#160; &#160; &#160;( &lt;expression&gt; | &quot;#&quot; &lt;identifier&gt; ) &quot;;&quot;
+&#160; &#160; &#160;( &lt;expression&gt; | &quot;#&quot; &lt;literal&gt; ) &quot;;&quot;
 &lt;protocol_def_list&gt; ::= ( &quot;$&quot; &lt;identifier&gt;: &lt;protocol_definition_body&gt; )* &quot;=&gt;&quot;
 &lt;param_def_list&gt; ::= &lt;param_def&gt;* &quot;&gt;&quot; &lt;type_literal&gt;
 &lt;param_def&gt; ::= &lt;identifier&gt; &quot;:&quot; &lt;type_literal&gt;
@@ -127,15 +132,661 @@ main > $Unit is
 &quot;}&quot; | &lt;protocol_literal&gt;
 &lt;protocol_literal&gt; ::= &quot;^&quot; &lt;identifier&gt; ( &quot;+&quot; &quot;^&quot; &lt;identifier&gt; )*
             </code></pre>
-          </div>
-        </section>
-      </main>
-      <footer>
-        <p>&copy; 2026 Sonneko</p>
-        <p><a href="https://github.com/sonneko">See Sonneko at GitHub</a></p>
-        <p><a href="https://x.com/_sonneko">Contact Sonneko on X</a></p>
-      </footer>
-    </div>
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+        </div>
+
+        <hr>
+
+        <!-- Navigation -->
+        <h2>Table of Contents</h2>
+        <ul>
+          <li><a href="#system">System & I/O</a></li>
+          <li><a href="#conversion">Type Conversion & Casting</a></li>
+          <li><a href="#arithmetic">Arithmetic (Int & Float)</a></li>
+          <li><a href="#comparison">Comparison & Divisibility</a></li>
+          <li><a href="#string">String Operations</a></li>
+          <li><a href="#logical">Logical Operators</a></li>
+          <li><a href="#math">Math Utilities, Trigonometry & Constants</a></li>
+          <li><a href="#array">Array Operations</a></li>
+          <li><a href="#map">Map Collections</a></li>
+          <li><a href="#set">Set Collections</a></li>
+        </ul>
+
+        <hr>
+
+        <!-- System & I/O -->
+        <h3 id="system">1. System & I/O</h3>
+        <table border="1" cellpadding="8" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Signature</th>
+              <th>JavaScript Mapping Template</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>print msg: $String &gt; $Unit</code></td>
+              <td><code>"console.log(msg)"</code></td>
+              <td>Outputs a string message directly to the system's standard output.</td>
+            </tr>
+            <tr>
+              <td><code>id x: $Any &gt; $Any</code></td>
+              <td><code>"x"</code></td>
+              <td>Identity function. Returns the provided value unmodified.</td>
+            </tr>
+            <tr>
+              <td><code>typeof x: $Any &gt; $String</code></td>
+              <td><code>"typeof x"</code></td>
+              <td>Evaluates the primitive type of the given value at runtime.</td>
+            </tr>
+            <tr>
+              <td><code>now &gt; $Float</code></td>
+              <td><code>"Date.now()"</code></td>
+              <td>Retrieves the current epoch timestamp in milliseconds.</td>
+            </tr>
+            <tr>
+              <td><code>jsonStringify x: $Any &gt; $String</code></td>
+              <td><code>"JSON.stringify(x)"</code></td>
+              <td>Serializes a value or object structure into a valid JSON string.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr>
+
+        <!-- Type Conversion & Casting -->
+        <h3 id="conversion">2. Type Conversion & Casting</h3>
+        <table border="1" cellpadding="8" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Signature</th>
+              <th>JavaScript Mapping Template</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>intToString n: $Int &gt; $String</code></td>
+              <td><code>"String(n)"</code></td>
+              <td>Converts a whole integer into its text string representation.</td>
+            </tr>
+            <tr>
+              <td><code>floatToString n: $Float &gt; $String</code></td>
+              <td><code>"String(n)"</code></td>
+              <td>Converts a floating-point number into its text string representation.</td>
+            </tr>
+            <tr>
+              <td><code>boolToString b: $Bool &gt; $String</code></td>
+              <td><code>"String(b)"</code></td>
+              <td>Converts a boolean value to <code>"true"</code> or <code>"false"</code>.</td>
+            </tr>
+            <tr>
+              <td><code>stringToInt s: $String &gt; $Int</code></td>
+              <td><code>"parseInt(s, 10)"</code></td>
+              <td>Parses a string base-10 sequence into a whole integer.</td>
+            </tr>
+            <tr>
+              <td><code>stringToFloat s: $String &gt; $Float</code></td>
+              <td><code>"parseFloat(s)"</code></td>
+              <td>Parses a string numerical sequence into a floating-point decimal.</td>
+            </tr>
+            <tr>
+              <td><code>intToFloat n: $Int &gt; $Float</code></td>
+              <td><code>"n"</code></td>
+              <td>Coerces an integer numerical type into a floating-point type representation.</td>
+            </tr>
+            <tr>
+              <td><code>floatToInt n: $Float &gt; $Int</code></td>
+              <td><code>"Math.trunc(n)"</code></td>
+              <td>Truncates decimals towards zero to construct a clean integer from a float.</td>
+            </tr>
+            <tr>
+              <td><code>assertInt i: $Int &gt; $Int</code></td>
+              <td><code>"i"</code></td>
+              <td>Guarantees and asserts at runtime that the argument is a valid integer.</td>
+            </tr>
+            <tr>
+              <td><code>assertFloat f: $Float &gt; $Float</code></td>
+              <td><code>"f"</code></td>
+              <td>Guarantees and asserts at runtime that the argument is a valid float.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr>
+
+        <!-- Arithmetic -->
+        <h3 id="arithmetic">3. Arithmetic (Int & Float)</h3>
+        <table border="1" cellpadding="8" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Signature</th>
+              <th>JavaScript Mapping Template</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>add x: $Int y: $Int &gt; $Int</code></td>
+              <td><code>"x + y"</code></td>
+              <td>Adds two integers.</td>
+            </tr>
+            <tr>
+              <td><code>sub x: $Int y: $Int &gt; $Int</code></td>
+              <td><code>"x - y"</code></td>
+              <td>Subtracts the second integer from the first.</td>
+            </tr>
+            <tr>
+              <td><code>mul x: $Int y: $Int &gt; $Int</code></td>
+              <td><code>"x * y"</code></td>
+              <td>Multiplies two integers.</td>
+            </tr>
+            <tr>
+              <td><code>div x: $Int y: $Int &gt; $Int</code></td>
+              <td><code>"x / y"</code></td>
+              <td>Divides the first integer by the second (performs standard JS division).</td>
+            </tr>
+            <tr>
+              <td><code>mod x: $Int y: $Int &gt; $Int</code></td>
+              <td><code>"x % y"</code></td>
+              <td>Calculates the integer remainder (modulo) of the division.</td>
+            </tr>
+            <tr>
+              <td><code>addF x: $Float y: $Float &gt; $Float</code></td>
+              <td><code>"x + y"</code></td>
+              <td>Adds two floating-point numbers.</td>
+            </tr>
+            <tr>
+              <td><code>subF x: $Float y: $Float &gt; $Float</code></td>
+              <td><code>"x - y"</code></td>
+              <td>Subtracts the second float from the first.</td>
+            </tr>
+            <tr>
+              <td><code>mulF x: $Float y: $Float &gt; $Float</code></td>
+              <td><code>"x * y"</code></td>
+              <td>Multiplies two floating-point numbers.</td>
+            </tr>
+            <tr>
+              <td><code>divF x: $Float y: $Float &gt; $Float</code></td>
+              <td><code>"x / y"</code></td>
+              <td>Divides the first float by the second.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr>
+
+        <!-- Comparison & Divisibility -->
+        <h3 id="comparison">4. Comparison & Divisibility</h3>
+        <table border="1" cellpadding="8" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Signature</th>
+              <th>JavaScript Mapping Template</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>eq x: $Int y: $Int &gt; $Bool</code></td>
+              <td><code>"x === y"</code></td>
+              <td>Checks if two integers are strictly equal.</td>
+            </tr>
+            <tr>
+              <td><code>neq x: $Int y: $Int &gt; $Bool</code></td>
+              <td><code>"x !== y"</code></td>
+              <td>Checks if two integers are not equal.</td>
+            </tr>
+            <tr>
+              <td><code>lt x: $Int y: $Int &gt; $Bool</code></td>
+              <td><code>"x &lt; y"</code></td>
+              <td>Checks if the first integer is less than the second.</td>
+            </tr>
+            <tr>
+              <td><code>lte x: $Int y: $Int &gt; $Bool</code></td>
+              <td><code>"x &lt;= y"</code></td>
+              <td>Checks if the first integer is less than or equal to the second.</td>
+            </tr>
+            <tr>
+              <td><code>gt x: $Int y: $Int &gt; $Bool</code></td>
+              <td><code>"x &gt; y"</code></td>
+              <td>Checks if the first integer is greater than the second.</td>
+            </tr>
+            <tr>
+              <td><code>gte x: $Int y: $Int &gt; $Bool</code></td>
+              <td><code>"x &gt;= y"</code></td>
+              <td>Checks if the first integer is greater than or equal to the second.</td>
+            </tr>
+            <tr>
+              <td><code>isDivisibleBy base: $Int n: $Int &gt; $Bool</code></td>
+              <td><code>"n % base === 0"</code></td>
+              <td>Returns true if <code>n</code> is perfectly divisible by <code>base</code>.</td>
+            </tr>
+            <tr>
+              <td><code>eqF x: $Float y: $Float &gt; $Bool</code></td>
+              <td><code>"x === y"</code></td>
+              <td>Checks if two floats are strictly equal.</td>
+            </tr>
+            <tr>
+              <td><code>neqF x: $Float y: $Float &gt; $Bool</code></td>
+              <td><code>"x !== y"</code></td>
+              <td>Checks if two floats are not equal.</td>
+            </tr>
+            <tr>
+              <td><code>ltF x: $Float y: $Float &gt; $Bool</code></td>
+              <td><code>"x &lt; y"</code></td>
+              <td>Checks if the first float is less than the second.</td>
+            </tr>
+            <tr>
+              <td><code>lteF x: $Float y: $Float &gt; $Bool</code></td>
+              <td><code>"x &lt;= y"</code></td>
+              <td>Checks if the first float is less than or equal to the second.</td>
+            </tr>
+            <tr>
+              <td><code>gtF x: $Float y: $Float &gt; $Bool</code></td>
+              <td><code>"x &gt; y"</code></td>
+              <td>Checks if the first float is greater than the second.</td>
+            </tr>
+            <tr>
+              <td><code>gteF x: $Float y: $Float &gt; $Bool</code></td>
+              <td><code>"x &gt;= y"</code></td>
+              <td>Checks if the first float is greater than or equal to the second.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr>
+
+        <!-- String Operations -->
+        <h3 id="string">5. String Operations</h3>
+        <table border="1" cellpadding="8" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Signature</th>
+              <th>JavaScript Mapping Template</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>eqS x: $String y: $String &gt; $Bool</code></td>
+              <td><code>"x === y"</code></td>
+              <td>Compares two strings for absolute content equality.</td>
+            </tr>
+            <tr>
+              <td><code>concat x: $String y: $String &gt; $String</code></td>
+              <td><code>"x + y"</code></td>
+              <td>Concatenates string <code>y</code> directly onto string <code>x</code>.</td>
+            </tr>
+            <tr>
+              <td><code>length s: $String &gt; $Int</code></td>
+              <td><code>"s.length"</code></td>
+              <td>Returns the numerical character length of the target string.</td>
+            </tr>
+            <tr>
+              <td><code>substring start: $Int end: $Int s: $String &gt; $String</code></td>
+              <td><code>"s.substring(start, end)"</code></td>
+              <td>Extracts characters in <code>s</code> starting at index <code>start</code> up to <code>end</code>.
+              </td>
+            </tr>
+            <tr>
+              <td><code>contains search: $String s: $String &gt; $Bool</code></td>
+              <td><code>"s.includes(search)"</code></td>
+              <td>Evaluates whether the <code>search</code> substring is present within <code>s</code>.</td>
+            </tr>
+            <tr>
+              <td><code>replace from: $String to: $String s: $String &gt; $String</code></td>
+              <td><code>"s.replaceAll(from, to)"</code></td>
+              <td>Replaces all occurrences of <code>from</code> with <code>to</code> within the target string.</td>
+            </tr>
+            <tr>
+              <td><code>split sep: $String s: $String &gt; $Array&lt;$String&gt;</code></td>
+              <td><code>"s.split(sep)"</code></td>
+              <td>Splits the target string into a structural array divided by the <code>sep</code> sequence.</td>
+            </tr>
+            <tr>
+              <td><code>trim s: $String &gt; $String</code></td>
+              <td><code>"s.trim()"</code></td>
+              <td>Removes leading and trailing whitespace characters.</td>
+            </tr>
+            <tr>
+              <td><code>toLowerCase s: $String &gt; $String</code></td>
+              <td><code>"s.toLowerCase()"</code></td>
+              <td>Converts all alphabetical characters in the string to lowercase.</td>
+            </tr>
+            <tr>
+              <td><code>toUpperCase s: $String &gt; $String</code></td>
+              <td><code>"s.toUpperCase()"</code></td>
+              <td>Converts all alphabetical characters in the string to uppercase.</td>
+            </tr>
+            <tr>
+              <td><code>indexOf search: $String s: $String &gt; $Int</code></td>
+              <td><code>"s.indexOf(search)"</code></td>
+              <td>Returns the starting index of the first match of <code>search</code>, or <code>-1</code> if not found.
+              </td>
+            </tr>
+            <tr>
+              <td><code>stringRepeat count: $Int s: $String &gt; $String</code></td>
+              <td><code>"s.repeat(count)"</code></td>
+              <td>Repeats the string <code>s</code> sequentially <code>count</code> times.</td>
+            </tr>
+            <tr>
+              <td><code>stringStartsWith prefix: $String s: $String &gt; $Bool</code></td>
+              <td><code>"s.startsWith(prefix)"</code></td>
+              <td>Checks if the string starts with the designated <code>prefix</code>.</td>
+            </tr>
+            <tr>
+              <td><code>stringEndsWith suffix: $String s: $String &gt; $Bool</code></td>
+              <td><code>"s.endsWith(suffix)"</code></td>
+              <td>Checks if the string ends with the designated <code>suffix</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr>
+
+        <!-- Logical Operators -->
+        <h3 id="logical">6. Logical Operators</h3>
+        <table border="1" cellpadding="8" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Signature</th>
+              <th>JavaScript Mapping Template</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>not b: $Bool &gt; $Bool</code></td>
+              <td><code>"!b"</code></td>
+              <td>Logically negates the incoming boolean value.</td>
+            </tr>
+            <tr>
+              <td><code>and x: $Bool y: $Bool &gt; $Bool</code></td>
+              <td><code>"x &amp;&amp; y"</code></td>
+              <td>Performs a logical AND operation (returns true if both values are true).</td>
+            </tr>
+            <tr>
+              <td><code>or x: $Bool y: $Bool &gt; $Bool</code></td>
+              <td><code>"x || y"</code></td>
+              <td>Performs a logical OR operation (returns true if at least one value is true).</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr>
+
+        <!-- Math Utilities, Trigonometry & Constants -->
+        <h3 id="math">7. Math Utilities, Trigonometry & Constants</h3>
+        <table border="1" cellpadding="8" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Signature</th>
+              <th>JavaScript Mapping Template</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>abs n: $Number &gt; $Number</code></td>
+              <td><code>"Math.abs(n)"</code></td>
+              <td>Returns the absolute value of the number <code>n</code>.</td>
+            </tr>
+            <tr>
+              <td><code>floor n: $Number &gt; $Number</code></td>
+              <td><code>"Math.floor(n)"</code></td>
+              <td>Rounds the number <code>n</code> downward to the nearest mathematical integer.</td>
+            </tr>
+            <tr>
+              <td><code>ceil n: $Number &gt; $Number</code></td>
+              <td><code>"Math.ceil(n)"</code></td>
+              <td>Rounds the number <code>n</code> upward to the nearest mathematical integer.</td>
+            </tr>
+            <tr>
+              <td><code>round n: $Number &gt; $Number</code></td>
+              <td><code>"Math.round(n)"</code></td>
+              <td>Rounds the number <code>n</code> to the nearest integer value.</td>
+            </tr>
+            <tr>
+              <td><code>sqrt n: $Number &gt; $Number</code></td>
+              <td><code>"Math.sqrt(n)"</code></td>
+              <td>Calculates the non-negative square root of the number <code>n</code>.</td>
+            </tr>
+            <tr>
+              <td><code>pow base: $Number exp: $Number &gt; $Number</code></td>
+              <td><code>"Math.pow(base, exp)"</code></td>
+              <td>Calculates the base raised to the exponent power.</td>
+            </tr>
+            <tr>
+              <td><code>min x: $Number y: $Number &gt; $Number</code></td>
+              <td><code>"Math.min(x, y)"</code></td>
+              <td>Selects and returns the lowest numerical value between <code>x</code> and <code>y</code>.</td>
+            </tr>
+            <tr>
+              <td><code>max x: $Number y: $Number &gt; $Number</code></td>
+              <td><code>"Math.max(x, y)"</code></td>
+              <td>Selects and returns the highest numerical value between <code>x</code> and <code>y</code>.</td>
+            </tr>
+            <tr>
+              <td><code>random &gt; $Float</code></td>
+              <td><code>"Math.random()"</code></td>
+              <td>Generates a pseudo-random floating point value in the range [0, 1).</td>
+            </tr>
+            <tr>
+              <td><code>isNaN n: $Number &gt; $Bool</code></td>
+              <td><code>"Number.isNaN(n)"</code></td>
+              <td>Checks whether the number <code>n</code> is the special value NaN.</td>
+            </tr>
+            <tr>
+              <td><code>isFinite n: $Number &gt; $Bool</code></td>
+              <td><code>"Number.isFinite(n)"</code></td>
+              <td>Validates if the target value <code>n</code> is a standard finite number.</td>
+            </tr>
+            <tr>
+              <td><code>sin n: $Number &gt; $Number</code></td>
+              <td><code>"Math.sin(n)"</code></td>
+              <td>Returns the trigonometric sine of the angle <code>n</code> (expressed in radians).</td>
+            </tr>
+            <tr>
+              <td><code>cos n: $Number &gt; $Number</code></td>
+              <td><code>"Math.cos(n)"</code></td>
+              <td>Returns the trigonometric cosine of the angle <code>n</code> (expressed in radians).</td>
+            </tr>
+            <tr>
+              <td><code>tan n: $Number &gt; $Number</code></td>
+              <td><code>"Math.tan(n)"</code></td>
+              <td>Returns the trigonometric tangent of the angle <code>n</code> (expressed in radians).</td>
+            </tr>
+            <tr>
+              <td><code>logN n: $Number &gt; $Number</code></td>
+              <td><code>"Math.log(n)"</code></td>
+              <td>Returns the natural logarithm (base e) of the value <code>n</code>.</td>
+            </tr>
+            <tr>
+              <td><code>expN n: $Number &gt; $Number</code></td>
+              <td><code>"Math.exp(n)"</code></td>
+              <td>Returns e raised to the power of <code>n</code>.</td>
+            </tr>
+            <tr>
+              <td><code>pi &gt; $Float</code></td>
+              <td><code>"Math.PI"</code></td>
+              <td>Constant value representing Pi (~3.14159).</td>
+            </tr>
+            <tr>
+              <td><code>e &gt; $Float</code></td>
+              <td><code>"Math.E"</code></td>
+              <td>Constant value representing the base of natural logarithms, Euler's number (~2.71828).</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr>
+
+        <!-- Array Operations -->
+        <h3 id="array">8. Array Operations</h3>
+        <table border="1" cellpadding="8" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Signature</th>
+              <th>JavaScript Mapping Template</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>newArray &gt; $Array&lt;$Any&gt;</code></td>
+              <td><code>"[]"</code></td>
+              <td>Initializes and returns an empty standard mutable array.</td>
+            </tr>
+            <tr>
+              <td><code>arrayLength arr: $Array&lt;$Any&gt; &gt; $Int</code></td>
+              <td><code>"arr.length"</code></td>
+              <td>Retrieves the count of elements stored in the array.</td>
+            </tr>
+            <tr>
+              <td><code>arrayGet idx: $Int arr: $Array&lt;$Any&gt; &gt; $Any</code></td>
+              <td><code>"arr[idx]"</code></td>
+              <td>Gets the element residing at the zero-based offset <code>idx</code>.</td>
+            </tr>
+            <tr>
+              <td><code>arrayPush item: $Any arr: $Array&lt;$Any&gt; &gt; $Unit</code></td>
+              <td><code>"void arr.push(item)"</code></td>
+              <td>Appends the specified <code>item</code> to the end of the array.</td>
+            </tr>
+            <tr>
+              <td><code>arraySlice start: $Int end: $Int arr: $Array&lt;$Any&gt; &gt; $Array&lt;$Any&gt;</code></td>
+              <td><code>"arr.slice(start, end)"</code></td>
+              <td>Extracts a shallow section of the array between <code>start</code> and <code>end</code> indices.</td>
+            </tr>
+            <tr>
+              <td><code>arrayJoin sep: $String arr: $Array&lt;$String&gt; &gt; $String</code></td>
+              <td><code>"arr.join(sep)"</code></td>
+              <td>Joins array components together as a single string interleaved with <code>sep</code>.</td>
+            </tr>
+            <tr>
+              <td><code>arrayConcat a: $Array&lt;$Any&gt; b: $Array&lt;$Any&gt; &gt; $Array&lt;$Any&gt;</code></td>
+              <td><code>"a.concat(b)"</code></td>
+              <td>Combines array <code>a</code> and array <code>b</code> into a new consolidated array.</td>
+            </tr>
+            <tr>
+              <td><code>arrayReverse arr: $Array&lt;$Any&gt; &gt; $Array&lt;$Any&gt;</code></td>
+              <td><code>"[...arr].reverse()"</code></td>
+              <td>Shallow-copies and reverses the order of the items in the target array.</td>
+            </tr>
+            <tr>
+              <td><code>arrayIncludes item: $Any arr: $Array&lt;$Any&gt; &gt; $Bool</code></td>
+              <td><code>"arr.includes(item)"</code></td>
+              <td>Checks if the array contains the designated target element.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr>
+
+        <!-- Map Collections -->
+        <h3 id="map">9. Map Collections</h3>
+        <table border="1" cellpadding="8" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Signature</th>
+              <th>JavaScript Mapping Template</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>newMap &gt; $Map&lt;$Any, $Any&gt;</code></td>
+              <td><code>"new Map()"</code></td>
+              <td>Creates and returns an empty Key-Value Map collection.</td>
+            </tr>
+            <tr>
+              <td><code>mapSet key: $Any val: $Any m: $Map&lt;$Any, $Any&gt; &gt; $Unit</code></td>
+              <td><code>"void m.set(key, val)"</code></td>
+              <td>Maps the designated <code>key</code> identifier to the <code>val</code> payload inside <code>m</code>.
+              </td>
+            </tr>
+            <tr>
+              <td><code>mapGet key: $Any m: $Map&lt;$Any, $Any&gt; &gt; $Any</code></td>
+              <td><code>"m.get(key)"</code></td>
+              <td>Retrieves the mapped value corresponding to <code>key</code>, or undefined if absent.</td>
+            </tr>
+            <tr>
+              <td><code>mapHas key: $Any m: $Map&lt;$Any, $Any&gt; &gt; $Bool</code></td>
+              <td><code>"m.has(key)"</code></td>
+              <td>Returns true if the specified <code>key</code> exists as a mapping inside <code>m</code>.</td>
+            </tr>
+            <tr>
+              <td><code>mapDelete key: $Any m: $Map&lt;$Any, $Any&gt; &gt; $Bool</code></td>
+              <td><code>"m.delete(key)"</code></td>
+              <td>Removes the key-value entry corresponding to <code>key</code> from the Map.</td>
+            </tr>
+            <tr>
+              <td><code>mapClear m: $Map&lt;$Any, $Any&gt; &gt; $Unit</code></td>
+              <td><code>"void m.clear()"</code></td>
+              <td>Purges all keys and values, resetting the Map to an empty state.</td>
+            </tr>
+            <tr>
+              <td><code>mapSize m: $Map&lt;$Any, $Any&gt; &gt; $Int</code></td>
+              <td><code>"m.size"</code></td>
+              <td>Returns the total count of active key-value pairs stored in the Map.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <hr>
+
+        <!-- Set Collections -->
+        <h3 id="set">10. Set Collections</h3>
+        <table border="1" cellpadding="8" cellspacing="0">
+          <thead>
+            <tr>
+              <th>Signature</th>
+              <th>JavaScript Mapping Template</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>newSet &gt; $Set&lt;$Any&gt;</code></td>
+              <td><code>"new Set()"</code></td>
+              <td>Creates and returns an empty mathematical Set designed to store unique items.</td>
+            </tr>
+            <tr>
+              <td><code>setAdd item: $Any s: $Set&lt;$Any&gt; &gt; $Unit</code></td>
+              <td><code>"void s.add(item)"</code></td>
+              <td>Adds the unique <code>item</code> into the targeted Set.</td>
+            </tr>
+            <tr>
+              <td><code>setHas item: $Any s: $Set&lt;$Any&gt; &gt; $Bool</code></td>
+              <td><code>"s.has(item)"</code></td>
+              <td>Returns true if the targeted Set contains the designated <code>item</code>.</td>
+            </tr>
+            <tr>
+              <td><code>setDelete item: $Any s: $Set&lt;$Any&gt; &gt; $Bool</code></td>
+              <td><code>"s.delete(item)"</code></td>
+              <td>Removes the specified <code>item</code> from the Set.</td>
+            </tr>
+            <tr>
+              <td><code>setClear s: $Set&lt;$Any&gt; &gt; $Unit</code></td>
+              <td><code>"void s.clear()"</code></td>
+              <td>Purges all unique values from the target Set, resetting it to empty.</td>
+            </tr>
+            <tr>
+              <td><code>setSize s: $Set&lt;$Any&gt; &gt; $Int</code></td>
+              <td><code>"s.size"</code></td>
+              <td>Returns the total count of distinct elements current inside the Set.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+    <footer>
+      <p>&copy; 2026 Sonneko</p>
+      <p><a href="https://github.com/sonneko">See Sonneko at GitHub</a></p>
+      <p><a href="https://x.com/_sonneko">Contact Sonneko on X</a></p>
+    </footer>
+  </div>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>
