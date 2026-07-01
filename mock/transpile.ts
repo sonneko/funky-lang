@@ -3,7 +3,7 @@ import type {
   UsingDecl, FunctionDecl, TypeDefinition, ProtocolDefinition,
   TypeLiteral, StructTypeBody, EnumTypeBody, FnTypeBody, NamedType,
   ProtocolLiteral, Expression, IfExpression, CallExpression,
-  BlockExpression, StructLiteral, EnumLiteral,
+  BlockExpression, StructLiteral
 } from "./parser.ts";
 
 // ============================================================
@@ -53,6 +53,7 @@ interface Scope {
   protocols: Map<string, string[]>;
   // function name → number of params (for currying)
   functions: Map<string, number>;
+  variants: Map<string, { hasArg: boolean }>;
 }
 
 function makeScope(): Scope {
@@ -61,6 +62,7 @@ function makeScope(): Scope {
     structTypes: new Map(),
     protocols: new Map(),
     functions: new Map(),
+    variants: new Map(),
   };
 }
 
@@ -108,6 +110,10 @@ export class Transpiler {
   private registerType(name: string, type: TypeLiteral) {
     if (type.kind === "EnumTypeBody") {
       this.scope.enumTypes.set(name, new Set(type.variants.map(v => v.name)));
+      for (const v of type.variants) {
+        const isUnit = v.type.kind === "NamedType" && v.type.name === "Unit";
+        this.scope.variants.set(v.name, { hasArg: !isUnit });
+      }
     } else if (type.kind === "StructTypeBody") {
       this.scope.structTypes.set(name, new Set(type.fields.map(f => f.name)));
     } else if (type.kind === "NamedType") {
@@ -357,8 +363,7 @@ export class Transpiler {
       case "NumberLiteral": return expr.value;
       case "BoolLiteral": return expr.value ? "true" : "false";
       case "StructLiteral": return this.emitStructLit(expr);
-      case "EnumLiteral": return this.emitEnumLit(expr);
-      case "PeriodAccess": return expr.parts.join(".");
+      case "PeriodAccess": return this.emitPeriodAccess(expr);
     }
   }
 
@@ -385,6 +390,15 @@ export class Transpiler {
   // ------------------------------------------------------------------
 
   private emitCall(expr: CallExpression): string {
+    if (expr.callee.kind === "PeriodAccess" && expr.callee.parts.length === 1) {
+      const vName = expr.callee.parts[0];
+      const variantInfo = this.scope.variants.get(vName);
+      if (variantInfo && variantInfo.hasArg) {
+        const arg = this.emitExpression(expr.arg);
+        return `({ tag: "${vName}", value: ${arg} })`;
+      }
+    }
+
     const callee = this.emitExpression(expr.callee);
     const arg = this.emitExpression(expr.arg);
     return `${callee}(${arg})`;
@@ -460,9 +474,19 @@ export class Transpiler {
   //   → ({ tag: "Some", value: 42 })
   // ------------------------------------------------------------------
 
-  private emitEnumLit(expr: EnumLiteral): string {
-    const val = this.emitExpression(expr.value);
-    return `({ tag: "${expr.name}", value: ${val} })`;
+  private emitPeriodAccess(expr: any): string {
+    if (expr.parts.length === 1) {
+      const vName = expr.parts[0];
+      const variantInfo = this.scope.variants.get(vName);
+      if (variantInfo) {
+        if (variantInfo.hasArg) {
+          return `((_v) => ({ tag: "${vName}", value: _v }))`; // 高階関数用
+        } else {
+          return `({ tag: "${vName}", value: undefined })`;    // 引数なし定数
+        }
+      }
+    }
+    return expr.parts.join(".");
   }
 }
 

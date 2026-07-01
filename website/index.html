@@ -104,11 +104,12 @@ main > $Unit is
 &#160; &#160; &#160; &#160; &#160;( &lt;expression&gt; &quot;;&quot; | &quot;break&quot; &lt;expression&gt; )*
 &#160; &#160; &#160; &#160; &#160;&lt;expression&gt;
 &#160; &#160; &#160;&quot;}&quot; &quot;where&quot; &quot;{&quot;
-&#160; &#160; &#160; &#160; &#160;( &lt;identifier&gt; ( &quot;:&quot; &lt;type_literal&gt; ) &quot;=&quot; &lt;expression&gt; )*
+&#160; &#160; &#160; &#160; &#160;( &lt;identifier&gt; ( &quot;:&quot; &lt;type_literal&gt; ) &quot;=&quot; &lt;expression&gt; &quot;;&quot; )*
 &#160; &#160; &#160;&quot;}&quot;
 &lt;primary_expression&gt; ::= &lt;literal&gt; | &lt;struct_literal&gt; | &lt;enum_literal&gt; | &lt;period_access&gt;
 &lt;struct_literal&gt; ::= &lt;identifier&gt; &quot;{&quot;
-&#160; &#160; &#160;( &lt;identifier&gt; &quot;=&quot; &lt;expression&gt; )*
+&#160; &#160; &#160;( &lt;identifier&gt; &quot;=&quot; &lt;expression&gt; &quot;,&quot;)*
+&#160; &#160; &#160; &lt;identifier&gt; &quot;=&quot; &lt;expression&gt; &quot;,&quot;?
 &quot;}&quot;
 &lt;enum_literal&gt; ::= &lt;identifier&gt; &quot;(&quot; &lt;expression&gt; &quot;)&quot;
 &lt;paren_expression&gt; ::= &quot;(&quot; &lt;expression&gt; &quot;)&quot;

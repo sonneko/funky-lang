@@ -195,19 +195,12 @@ export interface BlockExpression {
 export type PrimaryExpression =
   | Literal
   | StructLiteral
-  | EnumLiteral
   | PeriodAccess;
 
 export interface StructLiteral {
   kind: "StructLiteral";
   name: string;
   fields: { name: string; value: Expression }[];
-}
-
-export interface EnumLiteral {
-  kind: "EnumLiteral";
-  name: string;
-  value: Expression;
 }
 
 export interface PeriodAccess {
@@ -571,6 +564,11 @@ export class Parser {
       this.expect("EQ");
       const type = this.parseTypeLiteral();
       variants.push({ name, type });
+      if (!this.at("PIPE")) {
+        this.expect("COMMA");
+      } else {
+        this.tryConsume("COMMA");
+      }
     }
     this.expect("PIPE");
     return { kind: "EnumTypeBody", typeParams, variants };
@@ -674,10 +672,8 @@ export class Parser {
       t.kind === "STRING" ||
       t.kind === "NUMBER" ||
       t.kind === "BOOL" ||
-      (t.kind === "IDENT" && this.tokens[this.pos + 1]?.kind !== "EQ" &&
-        this.tokens[this.pos + 1]?.kind !== "IS" &&
-        this.tokens[this.pos + 1]?.kind !== "COLON" &&
-        this.tokens[this.pos + 1]?.kind !== "ARROW")
+      t.kind === "IDENT" ||
+      t.kind === "LPAREN"
     );
   }
 
@@ -690,10 +686,6 @@ export class Parser {
     // block do { ... } where { ... }
     if (t.kind === "DO") return this.parseBlockExpression();
 
-    // parenthesized
-    if (t.kind === "LPAREN") return this.parseParenExpression();
-
-    // primary expressions
     return this.parsePrimaryExpression();
   }
 
@@ -752,6 +744,7 @@ export class Parser {
       }
       this.expect("EQ");
       const value = this.parseExpression();
+      this.expect("SEMICOLON");
       bindings.push({ name, type, value });
     }
 
@@ -775,14 +768,14 @@ export class Parser {
       return this.parseLiteralNode();
     }
 
+    if (t.kind === "LPAREN") {
+      return this.parseParenExpression();
+    }
+
     if (t.kind === "IDENT") {
       // Look ahead: struct literal = ident "{"
       if (this.tokens[this.pos + 1]?.kind === "LBRACE") {
         return this.parseStructLiteral();
-      }
-      // Enum literal = ident "("
-      if (this.tokens[this.pos + 1]?.kind === "LPAREN") {
-        return this.parseEnumLiteral();
       }
       // Period access or plain identifier
       return this.parsePeriodAccess();
@@ -810,19 +803,14 @@ export class Parser {
       this.expect("EQ");
       const fval = this.parseExpression();
       fields.push({ name: fname, value: fval });
+      if (!this.at("RBRACE")) {
+        this.expect("COMMA");
+      } else {
+        this.tryConsume("COMMA");
+      }
     }
     this.expect("RBRACE");
     return { kind: "StructLiteral", name, fields };
-  }
-
-  // <enum_literal> ::= <identifier> "(" <expression> ")"
-
-  private parseEnumLiteral(): EnumLiteral {
-    const name = this.expect("IDENT").value;
-    this.expect("LPAREN");
-    const value = this.parseExpression();
-    this.expect("RPAREN");
-    return { kind: "EnumLiteral", name, value };
   }
 
   // <period_access> ::= <identifier> ( "." <identifier> )*
