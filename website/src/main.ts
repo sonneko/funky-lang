@@ -5,7 +5,11 @@ import { indentWithTab, history, historyKeymap, defaultKeymap } from '@codemirro
 import { bracketMatching, indentOnInput } from '@codemirror/language'
 import { parse } from '@funky/parser'
 import { transpile } from '@funky/transpile'
-import * as ts from 'typescript'
+import { checkAndCompile } from './compiler'
+
+const BUILTIN_DECLS = `
+declare const console_log: (...args: any[]) => void;
+`;
 
 const prefix = `
 print msg: $String > $Unit is #"console_log(msg)";
@@ -208,7 +212,7 @@ function switchToTab(tabId: 'output' | 'generated-code') {
 
 runBtn.addEventListener('click', async () => {
   const code = prefix + editor.state.doc.toString()
-  outputElement.textContent = 'Running...'
+  outputElement.textContent = 'Compiling and Type Checking...'
   generatedCodeElement.textContent = ''
 
   switchToTab('output')
@@ -220,7 +224,9 @@ runBtn.addEventListener('click', async () => {
     generatedCodeElement.textContent = tsCode
 
     // 2. TypeScript -> JavaScript (with type checking)
-    const compilation = compileTypeScript(tsCode)
+    // Prepend built-in declarations so TS knows about them
+    const lineOffset = BUILTIN_DECLS.split('\n').length - 1;
+    const compilation = await checkAndCompile(BUILTIN_DECLS + tsCode, lineOffset)
 
     if (compilation.errors.length > 0) {
       outputElement.textContent = 'Type Check Errors:\n' + compilation.errors.join('\n')
@@ -282,32 +288,3 @@ runBtn.addEventListener('click', async () => {
   }
 })
 
-function compileTypeScript(tsCode: string): { jsCode: string, errors: string[] } {
-  // We use transpileModule for quick JS generation.
-  // Full type checking in the browser is heavy and requires lib.d.ts.
-  // While transpileModule doesn't do full semantic check, it does check syntax and some simple things.
-  // For a pure client-side playground, this is the most common approach unless using a worker with full TS.
-
-  const result = ts.transpileModule(tsCode, {
-    compilerOptions: {
-      module: ts.ModuleKind.ESNext,
-      target: ts.ScriptTarget.ESNext,
-      strict: true,
-      alwaysStrict: true
-    },
-    reportDiagnostics: true
-  })
-
-  const errors = result.diagnostics ? result.diagnostics.map(d => {
-    if (d.file) {
-      const { line, character } = ts.getLineAndCharacterOfPosition(d.file, d.start!)
-      return `(${line + 1},${character + 1}): ${ts.flattenDiagnosticMessageText(d.messageText, '\n')}`
-    }
-    return ts.flattenDiagnosticMessageText(d.messageText, '\n')
-  }) : []
-
-  return {
-    jsCode: result.outputText,
-    errors
-  }
-}

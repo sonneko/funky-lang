@@ -246,15 +246,15 @@ impl UnifyTable {
                     .map_err(|(got, expected)| UnifyError::Mismatch(got, expected))
             }
 
-            // NumVar ← 非数値型: エラー (Bool 等を数値リテラルとして使おうとした)
-            (Ty::NumVar(id), other) | (other, Ty::NumVar(id)) => {
-                Err(UnifyError::Mismatch(Ty::NumVar(id), other))
-            }
-
             // Var + NumVar → Var を NumVar に束縛（数値制約を引き継ぐ）
             (Ty::Var(vid), Ty::NumVar(nid)) | (Ty::NumVar(nid), Ty::Var(vid)) => {
                 self.table.unify_var_value(vid, Some(Ty::NumVar(nid)))
                     .map_err(|(got, expected)| UnifyError::Mismatch(got, expected))
+            }
+
+            // NumVar ← 非数値型: エラー (Bool 等を数値リテラルとして使おうとした)
+            (Ty::NumVar(id), other) | (other, Ty::NumVar(id)) => {
+                Err(UnifyError::Mismatch(Ty::NumVar(id), other))
             }
 
             // Var ← 具体型
