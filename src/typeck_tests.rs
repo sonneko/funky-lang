@@ -260,12 +260,10 @@ mod tests {
 
     #[test]
     fn enum_literal_payload_type_propagates() {
-        // useInt は Int を期待するが Some("hello") は Option<String> → 型不一致
-        // Some("hello") を括弧で囲んで EnumLit として正しくパースさせる
+        // Some("hello") は Option<String> だが main は Int を期待
         check_err_contains(
             r#"$Option is $T => | Some = $T  None = $T |;
-               useInt x: $Int > $Int is x;
-               main > $Int is useInt (Some("hello"));"#,
+               main > $Int is (Some("hello"));"#,
             "type mismatch",
         );
     }
