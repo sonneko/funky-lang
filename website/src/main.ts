@@ -126,22 +126,20 @@ jsonStringify x: $Any > $String is #"JSON.stringify(x)";
 `;
 
 // Initial code example
-const initialCode = `
-fizzBuzzOf n: $Int > $String is
+const initialCode = `fizzBuzzOf n: $Int > $String is
     if (isDivisibleBy 15 n) then "FizzBuzz"
     else if (isDivisibleBy 3 n) then "Fizz"
     else if (isDivisibleBy 5 n) then "Buzz"
     else (intToString n);
 
-fizzBuzzLoop current: $Int max: $Int > $Void is
+fizzBuzzLoop current: $Int max: $Int > $Int is
     if gt current max then 0
     else do {
         print (fizzBuzzOf current);
         fizzBuzzLoop (add current 1) max
     };
 
-main > $Void is fizzBuzzLoop 1 100;
-
+main > $Int is fizzBuzzLoop 1 100;
 `
 
 // Minimal setup without syntax highlighting
