@@ -740,8 +740,18 @@ impl TypeChecker {
 
         match found.len() {
             0 => {
-                // 未知のバリアント → エラーだが Unit ペイロードとして処理
-                self.emit(e.span, DiagKind::UnboundType(e.name.clone()))
+                // `name(expr)` is also accepted as parenthesized function
+                // application when `name` is not a declared enum variant.
+                if val_r.is_error() {
+                    Ty::Error
+                } else if let Some(scheme) = self.env.lookup(&e.name).cloned() {
+                    let callee_ty = self.env.instantiate(&scheme, &mut self.table);
+                    let return_ty = self.table.new_var();
+                    self.unify(e.span, callee_ty, Ty::fun(val_r, return_ty.clone()));
+                    self.table.resolve(return_ty)
+                } else {
+                    self.emit(e.span, DiagKind::UnboundType(e.name.clone()))
+                }
             }
             1 => {
                 let (enum_name, info) = &found[0];

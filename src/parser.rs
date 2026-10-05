@@ -505,7 +505,11 @@ impl Parser {
         let mut expr = self.parse_base_expr()?;
 
         while self.is_primary_expr_start() {
-            let arg = self.parse_primary_expr()?;
+            let arg = if matches!(self.peek().kind, TokenKind::LParen) {
+                self.parse_paren_expr()?
+            } else {
+                self.parse_primary_expr()?
+            };
             let span = expr.span().merge(arg.span());
             expr = Expr::Call(Box::new(CallExpr { callee: expr, arg, span }));
         }
@@ -515,7 +519,7 @@ impl Parser {
 
     fn is_primary_expr_start(&self) -> bool {
         match &self.peek().kind {
-            TokenKind::StringLit(_) | TokenKind::NumberLit(_) | TokenKind::BoolLit(_) => true,
+            TokenKind::StringLit(_) | TokenKind::NumberLit(_) | TokenKind::BoolLit(_) | TokenKind::LParen => true,
             TokenKind::Ident(_) => {
                 // `=` `is` `:` `=>` の直前は式の開始ではない
                 !matches!(self.peek2().kind,
@@ -623,8 +627,11 @@ impl Parser {
                 if matches!(self.peek2().kind, TokenKind::LBrace) {
                     return self.parse_struct_lit();
                 }
-                // enum literal: Ident `(`
-                if matches!(self.peek2().kind, TokenKind::LParen) {
+                // Enum constructors use the conventional leading-uppercase
+                // spelling; lowercase `f (arg)` remains function application.
+                if matches!(self.peek2().kind, TokenKind::LParen)
+                    && matches!(&self.peek().kind, TokenKind::Ident(name) if name.as_bytes().first().is_some_and(|byte| byte.is_ascii_uppercase()))
+                {
                     return self.parse_enum_lit();
                 }
                 // period access or plain ident
@@ -651,6 +658,8 @@ impl Parser {
         Ok(Expr::Struct(Box::new(StructLit { name, fields, span: start.merge(end) })))
     }
 
+    /// Uppercase `Name(expr)` is parsed as an enum candidate; if no enum owns
+    /// `Name`, type checking and code generation may resolve it as a function.
     fn parse_enum_lit(&mut self) -> Result<Expr, ParseError> {
         let (name, start) = self.expect_ident()?;
         self.expect(&TokenKind::LParen)?;
@@ -824,6 +833,15 @@ mod tests {
         let FunctionBody::Expr(Expr::Call(outer)) = &fun.body else { panic!() };
         assert!(matches!(outer.arg, Expr::Lit(Literal::Number(ref n), _) if n == "2"));
         assert!(matches!(outer.callee, Expr::Call(_)));
+    }
+
+    #[test]
+    fn test_parenthesized_application_syntax() {
+        let prog = parser("f > $Int is add (sub 5 3);").parse_program().unwrap();
+        let TopLevel::Function(function) = &prog.items[0] else { panic!() };
+        let FunctionBody::Expr(Expr::Call(application)) = &function.body else { panic!() };
+        assert!(matches!(&application.callee, Expr::Var(parts, _) if parts[0] == "add"));
+        assert!(matches!(&application.arg, Expr::Paren(_, _)));
     }
 
     #[test]

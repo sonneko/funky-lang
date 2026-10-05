@@ -2,6 +2,7 @@
 name = "funkylang"
 version = "0.1.0"
 edition = "2021"
+description = "A small typed functional language with a compact bytecode VM"
 
 [[bin]]
 name = "funkylang"
@@ -12,8 +13,18 @@ name = "funkylang"
 path = "src/lib.rs"
 
 [dependencies]
-# rustcのHM型推論実装をベースにしたUnion-Find / 単一化ライブラリ
+# rustc の HM 型推論実装をベースにした Union-Find / 単一化ライブラリ
 ena = "0.14"
+# 高速な CLI、エラー伝播、バイトコードの入出力
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+bincode = "1.3"
+serde = { version = "1", features = ["derive", "rc"] }
+thiserror = "2"
+# VM のグローバル・フィールド表とコンパイラのシンボル表に使用
+rustc-hash = "2"
+# 行編集・履歴付きの式 REPL
+rustyline = "15"
 
 [profile.release]
 lto = true

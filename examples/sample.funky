@@ -1,43 +1,13 @@
-/* 標準ライブラリ相当のインポート */
-using console from "std:io";
+/* Point 型とカリー化された関数を使う実行可能な例 */
+$Point is { x = $Int  y = $Int };
 
-/* 基本型 */
-$Unit is {};
-$Option is $T => | Some = $T  None = $Unit |;
-$Result is $T $E => | Ok = $T  Err = $E |;
-$Vec2 is { x = $Float  y = $Float };
+/* VM 標準の加算 native を関数名 add に割り当てる */
+add x: $Int  y: $Int > $Int is # nativeAdd;
 
-/* プロトコル定義 */
-^Show is { show = $T > $String };
-^Eq   is { eq   = $T > $T > $Bool };
+sumPoint point: $Point > $Int is add point.x point.y;
 
-/* 外部関数 */
-log msg: $String > $Unit is # consoleLog;
+factorial n: $Int > $Int is
+  if le n 1 then 1 else mul n (factorial (sub n 1));
 
-/* 定数 */
-origin > $Vec2 is Vec2 { x = 0  y = 0 };
-
-/* 2つのベクトルを足す */
-addVec a: $Vec2  b: $Vec2 > $Vec2 is
-  Vec2 { x = a.x  y = b.y };
-
-/* ゼロ除算を安全に扱う */
-safeDiv x: $Int  y: $Int > $Result is
-  if y then Ok(x) else Err("division by zero");
-
-/* 値をクランプ */
-clamp x: $Int  lo: $Int  hi: $Int > $Int is
-  if x then
-    if x then lo else x
-  else hi;
-
-/* do-where ブロック */
-compute > $Int is
-  do {
-    log msg;
-    break result;
-    0
-  } where {
-    msg    = "computing"
-    result : $Int = 42
-  };
+/* cargo run -- examples/sample.funky → 42 */
+main > $Int is sumPoint Point { x = 20  y = 22 };
