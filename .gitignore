@@ -1,3 +1,8 @@
 node_modules
 dist
 *.log
+/dist
+/target
+/node_modules
+*.fbc
+.DS_Store

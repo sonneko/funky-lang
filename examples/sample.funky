@@ -1,0 +1,13 @@
+/* Point 型とカリー化された関数を使う実行可能な例 */
+$Point is { x = $Int  y = $Int };
+
+/* VM 標準の加算 native を関数名 add に割り当てる */
+add x: $Int  y: $Int > $Int is # nativeAdd;
+
+sumPoint point: $Point > $Int is add point.x point.y;
+
+factorial n: $Int > $Int is
+  if le n 1 then 1 else mul n (factorial (sub n 1));
+
+/* cargo run -- examples/sample.funky → 42 */
+main > $Int is sumPoint Point { x = 20  y = 22 };
