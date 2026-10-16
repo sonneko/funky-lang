@@ -1,0 +1,15 @@
+/* Draft 0.2: effectful file input, Result matching, and finite iteration. */
+using readText printLine ioErrorMessage from "std/io";
+using concat split trim from "std/text";
+
+main >! $Unit is
+  do {
+    contents <- readText "notes.txt";
+    match contents is {
+      | Err(problem) => printLine (concat "could not read notes.txt: " (ioErrorMessage problem));
+      | Ok(text) =>
+          for line in split "\n" text do
+            printLine (trim line);
+    };
+    ()
+  } where {};

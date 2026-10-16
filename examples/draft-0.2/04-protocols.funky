@@ -1,0 +1,24 @@
+/* Draft 0.2: ^Eq/equal and eq are supplied by the prelude. */
+using concat intToString from "std/text";
+
+^Show is { show = $Self > $String };
+
+$Point is { x = $Int  y = $Int };
+
+instance ^Eq for $Point is {
+  equal left right is
+    and (eq left.x right.x) (eq left.y right.y);
+};
+
+instance ^Show for $Point is {
+  show point is
+    concat (intToString point.x) (concat "," (intToString point.y));
+};
+
+samePoint left: $Point right: $Point > $Bool is eq left right;
+showValue $T: ^Show => value: $T > $String is show value;
+
+origin > $Point is Point { x = 0  y = 0 };
+originLabel > $String is showValue origin;
+
+main > $Int is if samePoint origin origin then 0 else 1;

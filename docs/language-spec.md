@@ -3,7 +3,7 @@
 > **これは実装済み仕様ではなく、Funky を数百行程度のスクリプトにも使えるようにするための提案である。**
 > 形式文法は [`grammar.ebnf`](grammar.ebnf)。現行の Rust パーサー／VM がこの文書の全機能を受け付けるわけではない。
 
-この案の基準は、実行可能な `examples/*.funky` と README にある Rust VM 版の記法である。ブラウザーの Playground には別世代の TypeScript 試作文法が混在しているため、たとえば `loop` や `where` の区切り方はそのまま規範にせず、ここで一貫した形に整理する。Web の説明は「構造的型付け」と呼ぶ一方、現在の Rust 型チェッカー／VM は宣言名でレコード型を区別する。この案では実装済み側に合わせて名目的な互換性を採用し、暗黙の幅サブタイピングを約束しない。
+この案の基準は、現行 Rust VM で実行できる `examples/sample.funky` と README の記法である。Draft 0.2 の提案例は `examples/draft-0.2/` に分けてある。ブラウザーの Playground には別世代の TypeScript 試作文法が混在しているため、たとえば `loop` や `where` の区切り方はそのまま規範にせず、ここで一貫した形に整理する。Web の説明は「構造的型付け」と呼ぶ一方、現在の Rust 型チェッカー／VM は宣言名でレコード型を区別する。この案では実装済み側に合わせて名目的な互換性を採用し、暗黙の幅サブタイピングを約束しない。
 
 ## 1. 変えないもの、足すもの
 
@@ -82,7 +82,7 @@ $Result is $Ok $Err => | Ok = $Ok  Err = $Err |;
 numbers > $List<$Int> is [1, 2, 3];
 ```
 
-添字演算子は設けない。`at index values` は 0 始まりで `$Option<$T>` を返し、範囲外を panic にしない。`range start end` は整数の半開区間 `[start, end)`。`map`、`filter`、`foldLeft`、`range` などを標準関数として提供し、これらは左から右へ要素を処理する。List の要素と並び順は不変であり、更新系の関数は新しい List を返す。
+添字演算子は設けない。`at index values` は 0 始まりで `$Option<$T>` を返し、範囲外を panic にしない。`range start end` は整数の半開区間 `[start, end)`。`map transform values`、`filter predicate values`、`foldLeft step initial values`、`range` などを標準関数として提供し、これらは左から右へ要素を処理する。List の要素と並び順は不変であり、更新系の関数は新しい List を返す。
 
 ## 4. 関数、ジェネリクス、適用
 
@@ -125,10 +125,13 @@ incremented > $List<$Int> is map (fn n: $Int > $Int is add n 1) [1, 2, 3];
 列挙型を安全に分解するため、`match value is { ... }` を追加する。枝は `| pattern => expression;` の形で並べる。
 
 ```funky
-match result is {
-  | Ok(text) => printLine text;
-  | Err(problem) => printLine (ioErrorMessage problem);
-}
+using IoError ioErrorMessage printLine from "std/io";
+
+reportReadResult result: $Result<$String $IoError> >! $Unit is
+  match result is {
+    | Ok(text) => printLine text;
+    | Err(problem) => printLine (ioErrorMessage problem);
+  };
 ```
 
 パターンには `_`、小文字の束縛名、リテラル、列挙バリアント、名前付きレコードを使える。`Some(x)` は payload を束縛し、`None` は Unit payload のバリアントを照合する。レコードパターンは型名と列挙したフィールドを検査し、残りのフィールドは無視する。枝内の束縛はその枝の中だけで有効。パターンガードと `or` パターンは初版の範囲外とする。
@@ -178,12 +181,16 @@ readText path: $String >! $Result<$String $IoError> is # stdReadText;
 
 プロトコルは必要な関数の型を記述する。各メソッドの先頭引数は `$Self` とし、`$Self` はその instance が対象とする型を表す予約された型変数である。instance の実装は名前付きプロトコルに対して静的に結び付け、実行時の動的探索は行わない。
 
+以下の `^Eq` 宣言は prelude のインターフェース形を示すもので、通常のモジュールで再宣言するものではない。prelude はこの protocol と制約付き関数 `eq` を提供する。
+
 ```funky
 ^Eq is { equal = $Self > $Self > $Bool };
 eq $T: ^Eq => left: $T right: $T > $Bool is equal left right;
 ```
 
 ```funky
+using concat intToString from "std/text";
+
 ^Show is { show = $Self > $String };
 
 $Point is { x = $Int  y = $Int };
@@ -208,9 +215,9 @@ prelude は暗黙に使える。基本型、`Option`／`Result`／`List`、`^Eq`
 
 | モジュール | 提案する関数（概略型） |
 |---|---|
-| `std/io` | `arguments >! $List<$String>`、`printLine text: $String >! $Unit`、`readText path: $String >! $Result<$String $IoError>`、`writeText path: $String content: $String >! $Result<$Unit $IoError>`、`ioErrorMessage error: $IoError > $String` |
-| `std/text` | `stringLength text: $String > $Int`、`trim text: $String > $String`、`split separator: $String text: $String > $List<$String>`、`join separator: $String parts: $List<$String> > $String` |
-| `std/list` | `length`、`map`、`filter`、`foldLeft`、`at`、`range` |
+| `std/io` | `$IoError` 型、`arguments >! $List<$String>`、`printLine text: $String >! $Unit`、`readText path: $String >! $Result<$String $IoError>`、`writeText path: $String content: $String >! $Result<$Unit $IoError>`、`ioErrorMessage error: $IoError > $String` |
+| `std/text` | `concat left: $String right: $String > $String`、`stringLength text: $String > $Int`、`intToString n: $Int > $String`、`floatToString n: $Float > $String`、`trim text: $String > $String`、`split separator: $String text: $String > $List<$String>`、`join separator: $String parts: $List<$String> > $String` |
+| `std/list` | `length $T => values: $List<$T> > $Int`、`map $A $B => transform: ($A > $B) values: $List<$A> > $List<$B>`、`filter $T => predicate: ($T > $Bool) values: $List<$T> > $List<$T>`、`foldLeft $A $B => step: ($B > $A > $B) initial: $B values: $List<$A> > $B`、`at $T => index: $Int values: $List<$T> > $Option<$T>`、`range start: $Int end: $Int > $List<$Int>` |
 | `std/json` | `$Json` と `$JsonError`、`parseJson text: $String > $Result<$Json $JsonError>`、`stringify value: $Json > $String`、`jsonField key: $String object: $Json > $Option<$Json>` |
 
 `std/json` の値モデルは、たとえば次の閉じた列挙型で表せる。

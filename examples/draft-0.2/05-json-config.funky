@@ -1,0 +1,27 @@
+/* Draft 0.2: read JSON and inspect its closed Json value type with match. */
+using printLine readText from "std/io";
+using ioErrorMessage from "std/io";
+using concat from "std/text";
+using jsonField parseJson Text from "std/json";
+
+main >! $Unit is
+  do {
+    source <- readText "settings.json";
+    match source is {
+      | Err(problem) => printLine (concat "could not read settings.json: " (ioErrorMessage problem));
+      | Ok(text) =>
+          match parseJson text is {
+            | Err(_) => printLine "settings.json is not valid JSON";
+            | Ok(document) =>
+                match jsonField "theme" document is {
+                  | None => printLine "missing theme";
+                  | Some(value) =>
+                      match value is {
+                        | Text(theme) => printLine (concat "theme: " theme);
+                        | _ => printLine "theme must be a string";
+                      };
+                };
+          };
+    };
+    ()
+  } where {};

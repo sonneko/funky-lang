@@ -1,0 +1,11 @@
+/* Draft 0.2: relative module paths and import aliases. */
+using Point as P origin as originPoint translate as movePoint from "./geometry.funky";
+using concat intToString from "std/text";
+using printLine from "std/io";
+
+main >! $Unit is
+  do {
+    shifted: $P <- movePoint 2 3 originPoint;
+    printLine (concat (intToString shifted.x) (concat "," (intToString shifted.y)));
+    ()
+  } where {};
