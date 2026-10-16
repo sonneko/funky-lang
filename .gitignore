@@ -2,3 +2,9 @@ node_modules
 dist
 *.js
 package-lock.json
+*.log
+/dist
+/target
+/node_modules
+*.fbc
+.DS_Store
