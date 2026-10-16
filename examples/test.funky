@@ -1,0 +1,25 @@
+$ Point is { x = $Number y = $Number };
+
+$ Option is $T => | Some = $T None = { } |;
+
+^ Show is {
+  show = $Self > $String
+};
+
+add x: $Number y: $Number > $Number is #add;
+
+print x: $Any > $Any is #print;
+
+main > $Number is
+  do {
+    print (add 10 20);
+    print p.x;
+    print (s.value);
+    if true then print "true branch" else print "false branch";
+    0
+  } where {
+    p : $Point = Point { x = 1 y = 2 }
+    s = Some(100)
+  };
+
+main > $Number;

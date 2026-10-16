@@ -1,0 +1,3 @@
+$ Point is { x = $Number y = $Number };
+
+main > $Number is 0;

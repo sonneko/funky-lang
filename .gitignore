@@ -1,5 +1,7 @@
 node_modules
 dist
+*.js
+package-lock.json
 *.log
 /dist
 /target
