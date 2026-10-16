@@ -183,6 +183,12 @@ mod tests {
                   main > $Int is double 21;");
     }
 
+    #[test]
+    fn parenthesized_function_application_is_typechecked() {
+        check_ok("double x: $Int > $Int is add x x;
+                  main > $Int is double (add 10 11);");
+    }
+
     // ============================================================
     // 式: 変数参照
     // ============================================================
