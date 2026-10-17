@@ -1,288 +1,289 @@
 import './style.css'
-import { EditorView, crosshairCursor, drawSelection, dropCursor, highlightActiveLine, highlightActiveLineGutter, highlightSpecialChars, keymap, lineNumbers, rectangularSelection } from '@codemirror/view'
+import { basicSetup } from 'codemirror'
+import { indentWithTab } from '@codemirror/commands'
+import { HighlightStyle, StreamLanguage, syntaxHighlighting } from '@codemirror/language'
+import { tags } from '@lezer/highlight'
 import { EditorState } from '@codemirror/state'
-import { indentWithTab, history, historyKeymap, defaultKeymap } from '@codemirror/commands'
-import { bracketMatching, indentOnInput } from '@codemirror/language'
-import { parse } from '@funky/parser'
-import { transpile } from '@funky/transpile'
-import { checkAndCompile } from './compiler'
+import { EditorView, keymap } from '@codemirror/view'
 
-const BUILTIN_DECLS = `
-declare const console_log: (...args: any[]) => void;
-`;
+const examples: Record<string, string> = {
+  collections: `using filter foldLeft map range from "std/list";
+using concat intToString from "std/text";
+using printLine from "std/io";
 
-const prefix = `
-print msg: $String > $Unit is #"console_log(msg)";
-intToString n: $Int > $String is #"String(n)";
-floatToString n: $Float > $String is #"String(n)";
-boolToString b: $Bool > $String is #"String(b)";
-stringToInt s: $String > $Int is #"parseInt(s, 10)";
-stringToFloat s: $String > $Float is #"parseFloat(s)";
+isEven value: $Int > $Bool is eq (mod_ value 2) 0;
 
-add x: $Int y: $Int > $Int is #"x + y";
-sub x: $Int y: $Int > $Int is #"x - y";
-mul x: $Int y: $Int > $Int is #"x * y";
-div x: $Int y: $Int > $Int is #"x / y";
-mod x: $Int y: $Int > $Int is #"x % y";
+main >! $Unit is
+  do {
+    values <- range 1 10;
+    evens <- filter isEven values;
+    doubled <- map (fn value: $Int > $Int is mul value 2) evens;
+    total <- foldLeft add 0 doubled;
+    printLine (concat "sum of doubled evens: " (intToString total));
+    ()
+  } where {};
+`,
+  match: `using concat from "std/text";
+using printLine from "std/io";
 
-addF x: $Float y: $Float > $Float is #"x + y";
-subF x: $Float y: $Float > $Float is #"x - y";
-mulF x: $Float y: $Float > $Float is #"x * y";
-divF x: $Float y: $Float > $Float is #"x / y";
+$Notification is | Quiet = $Unit Message = $String |;
 
-eq x: $Int y: $Int > $Bool is #"x === y";
-neq x: $Int y: $Int > $Bool is #"x !== y";
-lt x: $Int y: $Int > $Bool is #"x < y";
-lte x: $Int y: $Int > $Bool is #"x <= y";
-gt x: $Int y: $Int > $Bool is #"x > y";
-gte x: $Int y: $Int > $Bool is #"x >= y";
-isDivisibleBy base: $Int n: $Int > $Bool is #"n % base === 0";
+describe notification: $Notification > $String is
+  match notification is {
+    | Quiet => "quiet";
+    | Message(text) => concat "message: " text;
+  };
 
-eqS x: $String y: $String > $Bool is #"x === y";
-concat x: $String y: $String > $String is #"x + y";
-length s: $String > $Int is #"s.length";
-substring start: $Int end: $Int s: $String > $String is #"s.substring(start, end)";
-contains search: $String s: $String > $Bool is #"s.includes(search)";
-replace src: $String to: $String s: $String > $String is #"s.replaceAll(src, to)";
-split sep: $String s: $String > $Array<$String> is #"s.split(sep)";
+main >! $Unit is
+  do {
+    printLine (describe (Message("Funky is typed and checked")));
+    printLine (describe Quiet);
+    ()
+  } where {};
+`,
+  files: `using readText printLine ioErrorMessage from "std/io";
+using concat split trim from "std/text";
 
-not b: $Bool > $Bool is #"!b";
-and x: $Bool y: $Bool > $Bool is #"x && y";
-or x: $Bool y: $Bool > $Bool is #"x || y";
-
-abs n: $Number > $Number is #"Math.abs(n)";
-floor n: $Number > $Number is #"Math.floor(n)";
-ceil n: $Number > $Number is #"Math.ceil(n)";
-round n: $Number > $Number is #"Math.round(n)";
-sqrt n: $Number > $Number is #"Math.sqrt(n)";
-pow base: $Number exp: $Number > $Number is #"Math.pow(base, exp)";
-min x: $Number y: $Number > $Number is #"Math.min(x, y)";
-max x: $Number y: $Number > $Number is #"Math.max(x, y)";
-random > $Float is #"Math.random()";
-
-arrayLength arr: $Array<$Any> > $Int is #"arr.length";
-arrayGet idx: $Int arr: $Array<$Any> > $Any is #"arr[idx]";
-arrayPush item: $Any arr: $Array<$Any> > $Unit is #"void arr.push(item)";
-arraySlice start: $Int end: $Int arr: $Array<$Any> > $Array<$Any> is #"arr.slice(start, end)";
-
-id x: $Any > $Any is #"x";
-
-assertInt i: $Int > $Int is #"i";
-assertFloat f: $Float > $Float is #"f";
-
-intToFloat n: $Int > $Float is #"n";
-floatToInt n: $Float > $Int is #"Math.trunc(n)";
-
-eqF x: $Float y: $Float > $Bool is #"x === y";
-neqF x: $Float y: $Float > $Bool is #"x !== y";
-ltF x: $Float y: $Float > $Bool is #"x < y";
-lteF x: $Float y: $Float > $Bool is #"x <= y";
-gtF x: $Float y: $Float > $Bool is #"x > y";
-gteF x: $Float y: $Float > $Bool is #"x >= y";
-
-isNaN n: $Number > $Bool is #"Number.isNaN(n)";
-isFinite n: $Number > $Bool is #"Number.isFinite(n)";
-
-trim s: $String > $String is #"s.trim()";
-toLowerCase s: $String > $String is #"s.toLowerCase()";
-toUpperCase s: $String > $String is #"s.toUpperCase()";
-indexOf search: $String s: $String > $Int is #"s.indexOf(search)";
-stringRepeat count: $Int s: $String > $String is #"s.repeat(count)";
-stringStartsWith prefix: $String s: $String > $Bool is #"s.startsWith(prefix)";
-stringEndsWith suffix: $String s: $String > $Bool is #"s.endsWith(suffix)";
-
-sin n: $Number > $Number is #"Math.sin(n)";
-cos n: $Number > $Number is #"Math.cos(n)";
-tan n: $Number > $Number is #"Math.tan(n)";
-logN n: $Number > $Number is #"Math.log(n)";
-expN n: $Number > $Number is #"Math.exp(n)";
-pi > $Float is #"Math.PI";
-e > $Float is #"Math.E";
-
-newArray > $Array<$Any> is #"[]";
-arrayJoin sep: $String arr: $Array<$String> > $String is #"arr.join(sep)";
-arrayConcat a: $Array<$Any> b: $Array<$Any> > $Array<$Any> is #"a.concat(b)";
-arrayReverse arr: $Array<$Any> > $Array<$Any> is #"[...arr].reverse()";
-arrayIncludes item: $Any arr: $Array<$Any> > $Bool is #"arr.includes(item)";
-
-newMap > $Map<$Any $Any> is #"new Map()";
-mapSet key: $Any val: $Any m: $Map<$Any $Any> > $Unit is #"void m.set(key, val)";
-mapGet key: $Any m: $Map<$Any $Any> > $Any is #"m.get(key)";
-mapHas key: $Any m: $Map<$Any $Any> > $Bool is #"m.has(key)";
-mapDelete key: $Any m: $Map<$Any $Any> > $Bool is #"m.delete(key)";
-mapClear m: $Map<$Any $Any> > $Unit is #"void m.clear()";
-mapSize m: $Map<$Any $Any> > $Int is #"m.size";
-
-newSet > $Set<$Any> is #"new Set()";
-setAdd item: $Any s: $Set<$Any> > $Unit is #"void s.add(item)";
-setHas item: $Any s: $Set<$Any> > $Bool is #"s.has(item)";
-setDelete item: $Any s: $Set<$Any> > $Bool is #"s.delete(item)";
-setClear s: $Set<$Any> > $Unit is #"void s.clear()";
-setSize s: $Set<$Any> > $Int is #"s.size";
-
-now > $Float is #"Date.now()";
-jsonStringify x: $Any > $String is #"JSON.stringify(x)";
-
-`;
-
-// Initial code example
-const initialCode = `fizzBuzzOf n: $Int > $String is
-    if (isDivisibleBy 15 n) then "FizzBuzz"
-    else if (isDivisibleBy 3 n) then "Fizz"
-    else if (isDivisibleBy 5 n) then "Buzz"
-    else (intToString n);
-
-fizzBuzzLoop current: $Int max: $Int > $Int is
-    if gt current max then 0
-    else do {
-        print (fizzBuzzOf current);
-        fizzBuzzLoop (add current 1) max
+main >! $Unit is
+  do {
+    contents <- readText "notes.txt";
+    match contents is {
+      | Err(problem) => printLine (concat "could not read notes.txt: " (ioErrorMessage problem));
+      | Ok(text) =>
+          for line in split "\\n" text do
+            printLine (trim line);
     };
+    ()
+  } where {};
+`,
+  json: `using printLine readText ioErrorMessage from "std/io";
+using concat from "std/text";
+using jsonField parseJson Text from "std/json";
 
-main > $Int is fizzBuzzLoop 1 100;
-`
+main >! $Unit is
+  do {
+    source <- readText "settings.json";
+    match source is {
+      | Err(problem) => printLine (concat "could not read settings.json: " (ioErrorMessage problem));
+      | Ok(text) =>
+          match parseJson text is {
+            | Err(_) => printLine "settings.json is not valid JSON";
+            | Ok(document) =>
+                match jsonField "theme" document is {
+                  | None => printLine "missing theme";
+                  | Some(value) =>
+                      match value is {
+                        | Text(theme) => printLine (concat "theme: " theme);
+                        | _ => printLine "theme must be a string";
+                      };
+                };
+          };
+    };
+    ()
+  } where {};
+`,
+}
 
-// Minimal setup without syntax highlighting
-const minimalSetup = [
-  lineNumbers(),
-  highlightActiveLineGutter(),
-  highlightSpecialChars(),
-  history(),
-  drawSelection(),
-  dropCursor(),
-  EditorState.allowMultipleSelections.of(true),
-  indentOnInput(),
-  bracketMatching(),
-  rectangularSelection(),
-  crosshairCursor(),
-  highlightActiveLine(),
-  keymap.of([
-    ...defaultKeymap,
-    ...historyKeymap,
-    indentWithTab,
-  ]),
-]
+const starterFiles = JSON.stringify({
+  'notes.txt': '  Functional first\n  Types all the way down\n',
+  'settings.json': '{"theme":"midnight","fontSize":14}',
+}, null, 2)
 
-const editor = new EditorView({
-  doc: initialCode,
-  extensions: minimalSetup,
-  parent: document.querySelector('#editor')!
-})
-
-const outputElement = document.querySelector('#output')!
-const generatedCodeElement = document.querySelector('#generated-code')!
-const runBtn = document.querySelector('#run-btn')!
-const tabBtns = document.querySelectorAll('.tab-btn')
-
-// Tab switching logic
-tabBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const targetId = btn.getAttribute('data-tab')!
-
-    // Update active button
-    tabBtns.forEach(b => b.classList.remove('active'))
-    btn.classList.add('active')
-
-    // Update visible content
-    outputElement.classList.add('hidden')
-    generatedCodeElement.classList.add('hidden')
-    document.querySelector(`#${targetId}`)!.classList.remove('hidden')
-  })
-})
-
-function switchToTab(tabId: 'output' | 'generated-code') {
-  tabBtns.forEach(btn => {
-    if (btn.getAttribute('data-tab') === tabId) {
-      btn.classList.add('active')
-    } else {
-      btn.classList.remove('active')
+const funkyLanguage = StreamLanguage.define({
+  startState: () => ({ blockComment: false }),
+  token(stream, state) {
+    if (state.blockComment) {
+      if (stream.skipTo('*/')) {
+        stream.next(); stream.next(); state.blockComment = false
+      } else stream.skipToEnd()
+      return 'blockComment'
     }
-  })
+    if (stream.match('//')) { stream.skipToEnd(); return 'lineComment' }
+    if (stream.match('/*')) { state.blockComment = true; return 'blockComment' }
+    if (stream.match(/"(?:\\.|[^"\\])*"?/)) return 'string'
+    if (stream.match(/'(?:\\.|[^'\\])*'?/)) return 'string'
+    if (stream.match(/\$[A-Za-z_][A-Za-z0-9_]*/)) return 'typeName'
+    if (stream.match(/\^[A-Za-z_][A-Za-z0-9_]*/)) return 'className'
+    if (stream.match(/#[A-Za-z_][A-Za-z0-9_]*/)) return 'meta'
+    if (stream.match(/\b(?:if|then|else|do|where|break|for|in|is|using|from|as|fn|instance|true|false)\b/)) return 'keyword'
+    if (stream.match(/-?\d[\d_]*(?:\.\d[\d_]*)?/)) return 'number'
+    if (stream.match(/[A-Z][A-Za-z0-9_]*/)) return 'typeName'
+    if (stream.match(/[a-z_][A-Za-z0-9_]*/)) return 'variableName'
+    stream.next()
+    return null
+  },
+})
 
-  if (tabId === 'output') {
-    outputElement.classList.remove('hidden')
-    generatedCodeElement.classList.add('hidden')
-  } else {
-    outputElement.classList.add('hidden')
-    generatedCodeElement.classList.remove('hidden')
+const funkyHighlight = HighlightStyle.define([
+  { tag: tags.keyword, color: '#c792ea' },
+  { tag: tags.typeName, color: '#82aaff' },
+  { tag: tags.className, color: '#89ddff' },
+  { tag: tags.meta, color: '#f78c6c' },
+  { tag: tags.string, color: '#c3e88d' },
+  { tag: tags.number, color: '#f78c6c' },
+  { tag: tags.variableName, color: '#e6edf3' },
+  { tag: tags.lineComment, color: '#687482', fontStyle: 'italic' },
+  { tag: tags.blockComment, color: '#687482', fontStyle: 'italic' },
+])
+
+const editorTheme = EditorView.theme({
+  '&': { height: '100%', backgroundColor: '#10151b', color: '#dce4ec', fontSize: '13px' },
+  '.cm-content': { caretColor: '#c3f584', fontFamily: 'ui-monospace, "SFMono-Regular", Consolas, monospace', padding: '18px 0' },
+  '.cm-line': { padding: '0 20px' },
+  '.cm-gutters': { backgroundColor: '#10151b', color: '#52606d', border: 'none', paddingLeft: '8px' },
+  '.cm-activeLine': { backgroundColor: '#ffffff08' },
+  '.cm-activeLineGutter': { backgroundColor: '#ffffff08', color: '#aab6c2' },
+  '.cm-cursor': { borderLeftColor: '#c3f584' },
+  '&.cm-focused': { outline: 'none' },
+  '.cm-selectionBackground, ::selection': { backgroundColor: '#284d46 !important' },
+  '.cm-scroller': { overflow: 'auto' },
+}, { dark: true })
+
+const input = document.querySelector<HTMLTextAreaElement>('#virtual-files')!
+input.value = starterFiles
+const editor = new EditorView({
+  state: EditorState.create({
+    doc: examples.collections,
+    extensions: [
+      basicSetup,
+      funkyLanguage,
+      syntaxHighlighting(funkyHighlight),
+      editorTheme,
+      EditorView.lineWrapping,
+      keymap.of([indentWithTab]),
+      EditorView.updateListener.of(update => {
+        if (update.docChanged) document.querySelector<HTMLElement>('#dirty-indicator')!.hidden = false
+        const head = update.state.selection.main.head
+        const line = update.state.doc.lineAt(head)
+        document.querySelector<HTMLElement>('#cursor-position')!.textContent = `Ln ${line.number}, Col ${head - line.from + 1}`
+      }),
+    ],
+  }),
+  parent: document.querySelector<HTMLElement>('#editor')!,
+})
+
+const runButton = document.querySelector<HTMLButtonElement>('#run-btn')!
+const outputElement = document.querySelector<HTMLElement>('#output')!
+const diagnosticsElement = document.querySelector<HTMLElement>('#diagnostics')!
+const typescriptElement = document.querySelector<HTMLElement>('#typescript')!
+const statusChip = document.querySelector<HTMLElement>('#compile-status')!
+const statusText = document.querySelector<HTMLElement>('#status-text')!
+const outputCount = document.querySelector<HTMLElement>('#output-count')!
+const diagnosticsCount = document.querySelector<HTMLElement>('#diagnostics-count')!
+const runTime = document.querySelector<HTMLElement>('#run-time')!
+const toast = document.querySelector<HTMLElement>('#toast')!
+let toastTimer = 0
+
+function showToast(message: string) {
+  toast.textContent = message
+  toast.classList.add('visible')
+  window.clearTimeout(toastTimer)
+  toastTimer = window.setTimeout(() => toast.classList.remove('visible'), 1800)
+}
+
+function setStatus(kind: 'idle' | 'busy' | 'success' | 'error', label: string) {
+  statusChip.className = `status-chip status-${kind}`
+  statusText.textContent = label
+}
+
+function selectPanel(panelId: string) {
+  document.querySelectorAll<HTMLButtonElement>('.result-tab').forEach(button => {
+    const active = button.dataset.tab === panelId
+    button.classList.toggle('active', active)
+    button.setAttribute('aria-selected', String(active))
+  })
+  document.querySelectorAll<HTMLElement>('.result-view').forEach(panel => {
+    const active = panel.id === panelId
+    panel.hidden = !active
+    panel.classList.toggle('active', active)
+  })
+}
+
+function getVirtualFiles(): Record<string, string> {
+  const parsed: unknown = JSON.parse(input.value)
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) throw new Error('仮想ファイルは JSON object で指定してください。')
+  const files: Record<string, string> = {}
+  for (const [name, value] of Object.entries(parsed)) {
+    if (typeof value !== 'string') throw new Error(`仮想ファイル ${name} の内容は文字列にしてください。`)
+    files[name] = value
+  }
+  return files
+}
+
+async function runProgram() {
+  const startedAt = performance.now()
+  const source = editor.state.doc.toString()
+  runButton.disabled = true
+  runButton.classList.add('is-running')
+  setStatus('busy', '型チェック中')
+  outputElement.textContent = 'Funky を解析して TypeScript strict check を実行しています…'
+  diagnosticsElement.textContent = 'Checking…'
+  outputCount.textContent = ''
+  diagnosticsCount.textContent = ''
+  typescriptElement.textContent = '// TypeScript を生成しています…'
+  runTime.textContent = ''
+  selectPanel('output-panel')
+
+  try {
+    const { compileInBrowser, runInBrowserWorker } = await import('./compiler.ts')
+    const compiled = compileInBrowser(source)
+    typescriptElement.textContent = compiled.typescript
+    if (compiled.diagnostics.length) {
+      diagnosticsElement.textContent = compiled.diagnostics.join('\n')
+      diagnosticsCount.textContent = String(compiled.diagnostics.length)
+      outputElement.textContent = `TypeScript の型チェックに失敗しました（${compiled.diagnostics.length}件）。`
+      setStatus('error', '型エラー')
+      selectPanel('diagnostics-panel')
+      return
+    }
+    diagnosticsElement.textContent = 'エラーはありません。TypeScript strict check に成功しました。'
+    diagnosticsCount.textContent = ''
+    setStatus('busy', '実行中')
+
+    const files = getVirtualFiles()
+    const result = await runInBrowserWorker(compiled.javascript!, files)
+    const lines = [...result.logs]
+    lines.push(`\n✓ Finished · main returned ${result.result}`)
+    outputElement.textContent = lines.join('\n')
+    outputCount.textContent = result.logs.length ? String(result.logs.length) : ''
+    runTime.textContent = `${Math.round(performance.now() - startedAt)} ms`
+    setStatus('success', '型チェック済み')
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    outputElement.textContent = message
+    diagnosticsElement.textContent = message
+    diagnosticsCount.textContent = '1'
+    setStatus('error', 'エラー')
+    selectPanel('diagnostics-panel')
+  } finally {
+    runButton.disabled = false
+    runButton.classList.remove('is-running')
+    document.querySelector<HTMLElement>('#dirty-indicator')!.hidden = true
   }
 }
 
-runBtn.addEventListener('click', async () => {
-  const code = prefix + editor.state.doc.toString()
-  outputElement.textContent = 'Compiling and Type Checking...'
-  generatedCodeElement.textContent = ''
-
-  switchToTab('output')
-
-  try {
-    // 1. Funky -> TypeScript
-    const ast = parse(code)
-    const tsCode = transpile(ast)
-    generatedCodeElement.textContent = tsCode
-
-    // 2. TypeScript -> JavaScript (with type checking)
-    // Prepend built-in declarations so TS knows about them
-    const lineOffset = BUILTIN_DECLS.split('\n').length - 1;
-    const compilation = await checkAndCompile(BUILTIN_DECLS + tsCode, lineOffset)
-
-    if (compilation.errors.length > 0) {
-      outputElement.textContent = 'Type Check Errors:\n' + compilation.errors.join('\n')
-      return
-    }
-
-    // 3. Run JavaScript
-    outputElement.textContent = ''
-    const logs: string[] = []
-
-    // Setup environment for builtins
-    const env: any = {
-      console_log: (...args: any[]) => {
-        const message = args.map(arg => {
-          if (typeof arg === 'object' && arg !== null) {
-            return JSON.stringify(arg)
-          }
-          return String(arg)
-        }).join(' ')
-        logs.push(message)
-        console.log(...args)
-      }
-    }
-
-    // Expose env to global for the script to pick up "declare const"
-    Object.assign(window, env)
-
-    try {
-      // Use a blob to run as a module so 'export' works
-      const jsToRun = compilation.jsCode;
-      const blob = new Blob([jsToRun], { type: 'application/javascript' })
-      const url = URL.createObjectURL(blob)
-
-      // Import the module.
-      const module = await import(/* @vite-ignore */ url)
-
-      // Execute main if it exists as an export
-      if (module.main) {
-        if (typeof module.main === 'function') {
-          module.main();
-        } else {
-          env.console_log(module.main);
-        }
-      }
-
-      URL.revokeObjectURL(url)
-
-      if (logs.length > 0) {
-        outputElement.textContent = logs.join('\n')
-      } else {
-        outputElement.textContent = '(Success - no output)'
-      }
-    } catch (e: any) {
-      outputElement.textContent += '\nRuntime Error:\n' + e.message
-    }
-
-  } catch (e: any) {
-    outputElement.textContent = 'Error:\n' + e.message + "\n@" + ( e.pos - prefix.length);
+runButton.addEventListener('click', () => void runProgram())
+document.querySelector<HTMLSelectElement>('#example-select')!.addEventListener('change', event => {
+  const key = (event.currentTarget as HTMLSelectElement).value
+  editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: examples[key] ?? examples.collections } })
+  void runProgram()
+})
+document.querySelectorAll<HTMLButtonElement>('.result-tab').forEach(button => {
+  button.addEventListener('click', () => selectPanel(button.dataset.tab!))
+})
+document.querySelector<HTMLButtonElement>('#copy-btn')!.addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(editor.state.doc.toString()); showToast('Funky ソースをコピーしました') }
+  catch { showToast('クリップボードにアクセスできませんでした') }
+})
+document.querySelector<HTMLButtonElement>('#copy-ts-btn')!.addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(typescriptElement.textContent ?? ''); showToast('TypeScript をコピーしました') }
+  catch { showToast('クリップボードにアクセスできませんでした') }
+})
+document.addEventListener('keydown', event => {
+  if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+    event.preventDefault()
+    void runProgram()
   }
 })
 
+void runProgram()

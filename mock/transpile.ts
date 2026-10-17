@@ -1499,16 +1499,48 @@ class Transpiler {
 
 export function transpile(program: Program): string { return new Transpiler(program).run(); }
 
+const typecheckOptions: ts.CompilerOptions = { strict: true, noEmit: true, skipLibCheck: true, target: ts.ScriptTarget.ES2022, lib: ["lib.es2022.d.ts"], types: [] };
+const generatedTypecheckFile = "/__funky_generated__.ts";
+
 export function typecheck(source: string): string[] {
-  const fileName = `${process.cwd()}/__funky_generated__.ts`;
-  const options: ts.CompilerOptions = { strict: true, noEmit: true, skipLibCheck: true, target: ts.ScriptTarget.ES2022, lib: ["lib.es2022.d.ts"], types: [] };
-  const host = ts.createCompilerHost(options);
+  const host = ts.createCompilerHost(typecheckOptions);
   const originalGetSourceFile = host.getSourceFile.bind(host);
   const originalFileExists = host.fileExists.bind(host);
   const originalReadFile = host.readFile.bind(host);
-  host.getSourceFile = (name, languageVersion, onError, shouldCreateNewSourceFile) => name === fileName ? ts.createSourceFile(name, source, languageVersion, true) : originalGetSourceFile(name, languageVersion, onError, shouldCreateNewSourceFile);
-  host.fileExists = name => name === fileName || originalFileExists(name);
-  host.readFile = name => name === fileName ? source : originalReadFile(name);
-  const program = ts.createProgram([fileName], options, host);
+  host.getSourceFile = (name, languageVersion, onError, shouldCreateNewSourceFile) => name === generatedTypecheckFile ? ts.createSourceFile(name, source, languageVersion, true) : originalGetSourceFile(name, languageVersion, onError, shouldCreateNewSourceFile);
+  host.fileExists = name => name === generatedTypecheckFile || originalFileExists(name);
+  host.readFile = name => name === generatedTypecheckFile ? source : originalReadFile(name);
+  const program = ts.createProgram([generatedTypecheckFile], typecheckOptions, host);
   return ts.getPreEmitDiagnostics(program).map(d => ts.flattenDiagnosticMessageText(d.messageText, "\n"));
+}
+
+export function typecheckInMemory(source: string, libraries: Record<string, string>): string[] {
+  const normalized = (name: string) => name.replaceAll("\\", "/");
+  const basename = (name: string) => normalized(name).split("/").pop()!;
+  const libFiles = new Map(Object.entries(libraries));
+  const contents = (name: string) => normalized(name) === generatedTypecheckFile ? source : libFiles.get(basename(name));
+  const host: ts.CompilerHost = {
+    getSourceFile: (name, languageVersion) => {
+      const text = contents(name);
+      return text === undefined ? undefined : ts.createSourceFile(name, text, languageVersion, true);
+    },
+    writeFile: () => undefined,
+    getDefaultLibFileName: () => "lib.es2022.d.ts",
+    getCurrentDirectory: () => "/",
+    getCanonicalFileName: normalized,
+    useCaseSensitiveFileNames: () => true,
+    getNewLine: () => "\n",
+    fileExists: name => normalized(name) === generatedTypecheckFile || libFiles.has(basename(name)),
+    readFile: name => contents(name),
+    directoryExists: () => true,
+    getDirectories: () => [],
+    realpath: normalized,
+  };
+  const program = ts.createProgram([generatedTypecheckFile], typecheckOptions, host);
+  return ts.getPreEmitDiagnostics(program).map(d => {
+    const message = ts.flattenDiagnosticMessageText(d.messageText, "\n");
+    if (!d.file || d.file.fileName !== generatedTypecheckFile || d.start === undefined) return `TS${d.code}: ${message}`;
+    const { line, character } = ts.getLineAndCharacterOfPosition(d.file, d.start);
+    return `${line + 1}:${character + 1} TS${d.code}: ${message}`;
+  });
 }
