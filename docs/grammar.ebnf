@@ -1,0 +1,191 @@
+(*
+  Funky — practical-language proposal, draft 0.2
+  This is the proposed grammar, NOT a description of every feature currently
+  accepted by the Rust parser. See language-spec.md for status and semantics.
+
+  EBNF notation:
+    { X }  zero or more X
+    [ X ]  optional X
+    A | B  alternative
+  Quoted terminals use C-style escapes (for example \\ and \n).
+  Productions describe tokens after trivia (whitespace and comments) is removed.
+  In record/type/protocol/where member lists, the parser uses the member-start
+  lookahead described in language-spec.md to end the preceding expression.
+*)
+
+program                 = { top-level-declaration }, EOF ;
+
+top-level-declaration   = using-declaration
+                        | type-declaration
+                        | protocol-declaration
+                        | instance-declaration
+                        | function-declaration ;
+
+(* Imports are named and open: imported names are available unqualified. *)
+using-declaration       = "using", [ import-item, { import-item } ],
+                          "from", string-literal, ";" ;
+import-item             = identifier, [ "as", identifier ] ;
+
+(* Named type bodies retain the original $Name / => / { } / | | shape. *)
+type-declaration        = "$", upper-identifier, "is",
+                          [ type-parameter-list, "=>" ], type-definition, ";" ;
+type-parameter-list     = type-parameter-name, { type-parameter-name } ;
+type-parameter-name     = "$", upper-identifier ;
+type-definition         = record-type | enum-type | type ;
+record-type             = "{", { record-field-type }, "}" ;
+record-field-type       = lower-identifier, "=", type ;
+enum-type               = "|", { enum-variant-type }, "|" ;
+enum-variant-type       = upper-identifier, "=", type ;
+
+(* Function arrows associate to the right; >! marks an effectful call. *)
+type                    = function-type | type-atom ;
+function-type           = type-atom, ">", [ "!" ], type ;
+type-atom               = named-type | "(", type, ")" ;
+named-type              = "$", upper-identifier,
+                          [ "<", type-argument, { type-argument }, ">" ] ;
+type-argument           = type-atom ;
+
+(* ^ protocols have a Self type and are composed with +. *)
+protocol-declaration    = "^", upper-identifier, "is",
+                          ( protocol-body | protocol-composition ), ";" ;
+protocol-body           = "{", { protocol-method }, "}" ;
+protocol-method         = lower-identifier, "=", function-type ;
+protocol-composition    = protocol-reference,
+                          { "+", protocol-reference } ;
+protocol-reference     = "^", upper-identifier ;
+protocol-constraint    = protocol-reference,
+                          { "+", protocol-reference } ;
+
+generic-clause          = generic-parameter, { generic-parameter }, "=>" ;
+generic-parameter       = "$", upper-identifier,
+                          [ ":", protocol-constraint ] ;
+
+(* An instance body inherits method types from the named protocol. *)
+instance-declaration    = "instance", [ generic-clause ],
+                          protocol-reference, "for", named-type, "is",
+                          "{", { method-implementation }, "}", ";" ;
+method-implementation   = lower-identifier, lower-identifier,
+                          { lower-identifier }, "is", expression, ";" ;
+
+function-declaration    = lower-identifier, [ generic-clause ],
+                          { parameter }, ">", [ "!" ], type,
+                          "is", function-body, ";" ;
+parameter               = lower-identifier, ":", type-atom ;
+function-body           = expression | "#", identifier ;
+
+(*
+  Expressions have no infix-operator layer. Application is left associative:
+  f a b means ((f a) b). A compound expression used as an argument is
+  parenthesized; literals, names and field accesses need not be.
+*)
+expression              = if-expression
+                        | match-expression
+                        | do-expression
+                        | for-expression
+                        | lambda-expression
+                        | application ;
+
+if-expression           = "if", expression, "then", expression,
+                          "else", expression ;
+
+match-expression        = "match", expression, "is", "{",
+                          match-arm, { match-arm }, "}" ;
+match-arm               = "|", pattern, "=>", expression, ";" ;
+
+for-expression          = "for", lower-identifier, "in", expression,
+                          "do", expression ;
+
+lambda-expression       = "fn", [ generic-clause ], parameter,
+                          { parameter }, ">", [ "!" ], type,
+                          "is", expression ;
+
+do-expression           = "do", "{", { do-statement }, expression, "}",
+                          "where", "{", [ where-bindings ], "}" ;
+do-statement            = break-statement
+                         | bind-statement
+                         | expression, ";" ;
+break-statement         = "break", expression, ";" ;
+bind-statement          = lower-identifier, [ ":", type ], "<-",
+                          expression, ";" ;
+where-bindings          = where-binding,
+                          { [ ";" ], where-binding }, [ ";" ] ;
+where-binding           = lower-identifier, [ ":", type ], "=",
+                          expression ;
+
+application             = postfix-expression, { postfix-expression } ;
+postfix-expression      = primary-expression, { ".", lower-identifier } ;
+primary-expression      = literal
+                        | list-literal
+                        | record-literal
+                        | enum-constructor
+                        | identifier
+                        | "(", expression, ")" ;
+
+list-literal            = "[", [ expression, { ",", expression }, [ "," ] ], "]" ;
+record-literal          = upper-identifier, "{", { field-initializer }, "}" ;
+field-initializer       = lower-identifier, "=", expression ;
+enum-constructor        = upper-identifier, [ "(", expression, ")" ] ;
+
+pattern                 = "_"
+                        | literal-pattern
+                        | lower-identifier
+                        | enum-pattern
+                        | record-pattern
+                        | "(", pattern, ")" ;
+literal-pattern         = number-literal | string-literal | boolean-literal
+                        | "(", ")" ;
+enum-pattern            = upper-identifier, [ "(", pattern, ")" ] ;
+record-pattern          = upper-identifier, "{", [ field-patterns ], "}" ;
+field-patterns          = field-pattern, { field-pattern } ;
+field-pattern           = lower-identifier, "=", pattern ;
+
+literal                 = number-literal | string-literal | boolean-literal
+                        | "(", ")" ;
+boolean-literal         = "true" | "false" ;
+
+(* Lexer-level rules. Keywords are reserved and matched as whole identifiers. *)
+identifier              = lower-identifier | upper-identifier ;
+lower-identifier        = lower-letter, { letter | digit | "_" }
+                        | "_", lower-letter, { letter | digit | "_" } ;
+upper-identifier        = upper-letter, { letter | digit | "_" }
+                        | "_", upper-letter, { letter | digit | "_" } ;
+lower-letter            = "a" | "b" | "c" | "d" | "e" | "f" | "g"
+                        | "h" | "i" | "j" | "k" | "l" | "m" | "n"
+                        | "o" | "p" | "q" | "r" | "s" | "t" | "u"
+                        | "v" | "w" | "x" | "y" | "z" ;
+upper-letter            = "A" | "B" | "C" | "D" | "E" | "F" | "G"
+                        | "H" | "I" | "J" | "K" | "L" | "M" | "N"
+                        | "O" | "P" | "Q" | "R" | "S" | "T" | "U"
+                        | "V" | "W" | "X" | "Y" | "Z" ;
+letter                  = lower-letter | upper-letter ;
+digit                   = "0" | "1" | "2" | "3" | "4" | "5" | "6"
+                        | "7" | "8" | "9" ;
+
+digits                  = digit, { digit | "_", digit } ;
+number-literal          = integer-literal | float-literal ;
+integer-literal         = [ "-" ], digits ;
+float-literal           = [ "-" ], digits,
+                          ( ".", digits, [ exponent ] | exponent ) ;
+exponent                = ( "e" | "E" ), [ "+" | "-" ], digits ;
+
+string-literal          = double-quoted-string | single-quoted-string ;
+double-quoted-string    = '"', { string-character | escape-sequence }, '"' ;
+single-quoted-string    = "'", { string-character | escape-sequence }, "'" ;
+escape-sequence         = "\\", ( "n" | "r" | "t" | "\\" | "'" | '"'
+                          | "u{", hex-digit, { hex-digit }, "}" ) ;
+hex-digit               = digit | "a" | "b" | "c" | "d" | "e" | "f"
+                        | "A" | "B" | "C" | "D" | "E" | "F" ;
+string-character       = any Unicode scalar except the active quote,
+                          backslash, CR, or LF ;
+
+trivia                  = { whitespace | line-comment | block-comment } ;
+whitespace              = " " | "\t" | "\r" | "\n" ;
+line-comment            = "//", { any character except CR or LF }, [ "\r" | "\n" ] ;
+block-comment           = "/*", { any character except the closing sequence }, "*/" ;
+
+(* Reserved words: *)
+(* using as from is do where if then else break match for in fn instance *)
+(* true and false are literals. `=>` and `<-` are multi-character tokens;
+   `>` and `!` are separate tokens (so the compact spelling `>!` is whitespace
+   insensitive). Other punctuation: _, $, ^, #, +, ., =, |, ;, :, (, ), {, },
+   [, ], comma, <, and the string/number punctuation. *)

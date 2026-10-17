@@ -1,0 +1,10 @@
+/* Draft 0.2 module imported by use-geometry.funky. */
+$Point is { x = $Int  y = $Int };
+
+origin > $Point is Point { x = 0  y = 0 };
+
+translate dx: $Int dy: $Int point: $Point > $Point is
+  Point {
+    x = add point.x dx
+    y = add point.y dy
+  };

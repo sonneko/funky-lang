@@ -6,9 +6,12 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "test": "node scripts/smoke.mjs",
     "preview": "vite preview"
   },
   "devDependencies": {
+    "@lezer/highlight": "^1.2.5",
+    "peggy": "^5.1.0",
     "typescript": "~6.0.2",
     "vite": "^8.0.12"
   },

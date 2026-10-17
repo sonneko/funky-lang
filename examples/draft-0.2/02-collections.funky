@@ -1,0 +1,18 @@
+/* Draft 0.2: immutable List, closures, and left-to-right folding. */
+using filter foldLeft map range from "std/list";
+using concat intToString from "std/text";
+using printLine from "std/io";
+
+isEven value: $Int > $Bool is eq (mod_ value 2) 0;
+
+main >! $Unit is
+  do {
+    values <- range 1 7;
+    evens <- filter isEven values;
+    doubled <- map (fn value: $Int > $Int is mul value factor) evens;
+    total <- foldLeft add 0 doubled;
+    printLine (concat "sum of doubled evens: " (intToString total));
+    ()
+  } where {
+    factor: $Int = 2;
+  };

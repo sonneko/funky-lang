@@ -67,6 +67,12 @@ assert_eq!(answer, Value::Int(42));
 
 ホストアプリケーションは `Vm::register_native("hostFunction", callback)` で `# hostFunction` に対応する native 関数を登録できます。実行する入口は `Vm::run`、引数付き呼び出しは `Vm::call` です。
 
+## Draft 0.2 TypeScript prototype
+
+Rust 版とは別に、Draft 0.2 の機能を試す TypeScript コンパイラー試作を `mock/` に実装しています。Rust CLI の動作は変更しません。Node.js 22.6 以降で `npm ci`、`npm test`、`npm run check:prototype` を実行できます。使い方と現状の制約は [`mock/README.md`](mock/README.md) を参照してください。Draft 0.2 の標準モジュールには対応しますが、Funky ファイル間の `using` と instance 発見だけは未実装です。
+
+ブラウザー版 Playground は [`website/`](website/) にあります。`cd website && npm ci && npm run dev` で起動でき、Funky の型検査、生成 TypeScript の strict check、実行をすべてブラウザー内で行います。詳細は [`website/README.md`](website/README.md) を参照してください。
+
 ## 現在の対応範囲
 
 - 型定義、構造体・列挙型リテラル、フィールドアクセス

@@ -1,0 +1,25 @@
+/* Draft 0.2: named records, transparent aliases, and curried functions. */
+$Point is { x = $Int  y = $Int };
+$Pair is $A $B => { first = $A  second = $B };
+$Meters is $Int;
+
+addMeters left: $Meters right: $Meters > $Meters is add left right;
+meters > $Meters is addMeters 12 30;
+
+makePair $A $B => first: $A second: $B > $Pair<$A $B> is
+  Pair { first = first  second = second };
+
+swapPair $A $B => pair: $Pair<$A $B> > $Pair<$B $A> is
+  Pair { first = pair.second  second = pair.first };
+
+addPoint left: $Point right: $Point > $Point is
+  Point {
+    x = add left.x right.x
+    y = add left.y right.y
+  };
+
+/* A zero-argument value holding a partially applied function. */
+addTen > $Int > $Int is add 10;
+
+point > $Point is Point { x = addTen 1  y = addTen 2 };
+answer > $Int is addTen 32;
